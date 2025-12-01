@@ -1,0 +1,45 @@
+
+
+# Core FastAPI and ASGI server
+fastapi>=0.100.0
+uvicorn[standard]>=0.23.0
+python-multipart>=0.0.6
+
+# Database
+sqlalchemy>=2.0.0
+psycopg2-binary>=2.9.0
+
+# Authentication & Security
+python-jose[cryptography]>=3.3.0
+passlib[bcrypt]>=1.7.4
+bcrypt>=4.0.0
+
+# Forms and validation
+pydantic>=2.0.0
+pydantic-settings>=2.0.0
+email-validator>=2.0.0
+
+# HTTP client for external APIs
+httpx>=0.24.0
+
+# Email sending
+aiosmtplib>=2.0.0
+
+# Session management
+itsdangerous>=2.1.0
+
+# Environment variables
+python-dotenv>=1.0.0
+
+# Date/time utilities
+python-dateutil>=2.8.0
+
+# Distance calculation (for shipping)
+geopy>=2.3.0
+
+# Timezone support
+pytz>=2023.3
+
+# Development dependencies
+pytest==7.4.4
+pytest-asyncio==0.23.3
