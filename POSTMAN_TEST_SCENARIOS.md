@@ -300,6 +300,85 @@ Replace `1` with actual city_id from step 4.2
 }
 ```
 
+### 6.3a Verify Shipping Fee Calculation (Distance-based)
+This scenario validates that shipping fee changes with address distance using geodesic calculation.
+
+Prerequisites:
+- You are logged in and cookies are enabled.
+- You have at least two addresses on your account with lat/lon:
+  - Address A (near warehouse): `latitude=14.5995`, `longitude=120.9842` (Manila)
+  - Address B (farther away): for example `latitude=14.6760`, `longitude=121.0437` (Quezon City)
+
+1) Create Address A (near warehouse)
+**Method:** `POST`  
+**URL:** `http://localhost:8000/api/addresses`  
+**Body:**
+```json
+{
+  "province_id": 39,
+  "city_id": 1376,
+  "barangay_id": 41163,
+  "additional_info": "Near warehouse (Manila)",
+  "phone_number": "+639171234567",
+  "latitude": 14.5995,
+  "longitude": 120.9842,
+  "is_default": false
+}
+```
+Save `address_id` as `address_id_near`.
+
+2) Create Address B (farther)
+**Method:** `POST`  
+**URL:** `http://localhost:8000/api/addresses`  
+**Body:**
+```json
+{
+  "province_id": 39,
+  "city_id": 1376,
+  "barangay_id": 41163,
+  "additional_info": "Farther (Quezon City)",
+  "phone_number": "+639171234567",
+  "latitude": 14.6760,
+  "longitude": 121.0437,
+  "is_default": false
+}
+```
+Save `address_id` as `address_id_far`.
+
+3) Calculate shipping for Address A (near)
+**Method:** `GET`  
+**URL:** `http://localhost:8000/api/checkout/calculate-shipping?address_id={{address_id_near}}&delivery_method=Standard Delivery`
+
+**Expected:**
+```json
+{
+  "delivery_method": "Standard Delivery",
+  "shipping_fee": 50.0
+}
+```
+Note: Close to base rate (₱50) because distance is near-zero.
+
+4) Calculate shipping for Address B (far)
+**Method:** `GET`  
+**URL:** `http://localhost:8000/api/checkout/calculate-shipping?address_id={{address_id_far}}&delivery_method=Standard Delivery`
+
+**Expected:**
+```json
+{
+  "delivery_method": "Standard Delivery",
+  "shipping_fee": 50.0
+}
+```
+Note: Value should be higher than Address A. Formula: `fee = 50 + distance_km * 5`.
+
+5) Priority Delivery surcharge
+**Method:** `GET`  
+**URL:** `http://localhost:8000/api/checkout/calculate-shipping?address_id={{address_id_far}}&delivery_method=Priority Delivery`
+
+**Expected:** `shipping_fee` equals Standard Delivery fee + 100.
+
+Warehouse reference (from `.env`): `WAREHOUSE_LAT=14.5995`, `WAREHOUSE_LON=120.9842`.
+
 ### 6.4 Set Shipping Method (Home Delivery)
 **Method:** `POST`  
 **URL:** `http://localhost:8000/api/checkout/shipping`  

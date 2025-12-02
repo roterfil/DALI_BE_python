@@ -48,7 +48,15 @@ def get_checkout_details(request: Request) -> dict:
 async def get_checkout_session(request: Request):
     """Get current checkout session details."""
     details = get_checkout_details(request)
-    return CheckoutDetailsResponse(**details)
+    # Map session keys (camelCase) to response model keys (snake_case)
+    mapped = {
+        "address_id": details.get("addressId"),
+        "delivery_method": details.get("deliveryMethod"),
+        "shipping_fee": details.get("shippingFee", 0.0),
+        "store_id": details.get("storeId"),
+        "payment_method": details.get("paymentMethod"),
+    }
+    return CheckoutDetailsResponse(**mapped)
 
 
 @router.post("/address")
