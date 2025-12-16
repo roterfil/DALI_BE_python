@@ -69,7 +69,6 @@ const LoginPage = () => {
           <span className="logo-name">DALI</span>
         </Link>
         <div className="auth-nav-links">
-          <Link to="/admin/login">Admin Login</Link>
           <Link to="/login" className="active">Login</Link>
         </div>
       </nav>

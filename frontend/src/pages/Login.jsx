@@ -83,12 +83,6 @@ const Login = () => {
             </button>
           </form>
 
-          <div className="or-separator">OR</div>
-
-          <Link to="/admin/login" className="btn btn-secondary auth-secondary-action">
-            Admin Login
-          </Link>
-
           <div className="switch-auth-link">
             Don't have an account? <Link to="/register">Sign up</Link>
           </div>

@@ -43,6 +43,8 @@ const Footer = () => {
             <a href="#">Terms and Conditions</a>
             <span>|</span>
             <a href="#">Privacy Policy</a>
+            <span>|</span>
+            <Link to="/admin/login" style={{ color: '#888', fontSize: '0.85em' }}>Staff</Link>
           </div>
         </div>
       </div>
