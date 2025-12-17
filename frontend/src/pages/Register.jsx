@@ -76,11 +76,7 @@ const Register = () => {
       <div className="auth-page">
         <nav className="auth-nav">
           <Link to="/" className="auth-logo">
-            <div className="logo-icon">
-              <span className="logo-d">!</span>
-              <span className="logo-text">D</span>
-            </div>
-            <span className="logo-name">DALI</span>
+            
           </Link>
         </nav>
 
