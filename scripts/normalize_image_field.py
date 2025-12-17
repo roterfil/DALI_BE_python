@@ -2,6 +2,16 @@
 Normalize product.image values by stripping any leading path, leaving only the filename.
 Run: python scripts/normalize_image_field.py
 """
+
+import os
+import sys
+
+# Ensure project root is on sys.path so `import app` works when running this script
+SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
+PROJECT_ROOT = os.path.abspath(os.path.join(SCRIPT_DIR, '..'))
+if PROJECT_ROOT not in sys.path:
+    sys.path.insert(0, PROJECT_ROOT)
+    
 from app.core.database import SessionLocal
 from app.models import Product
 from sqlalchemy import func
