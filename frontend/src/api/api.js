@@ -87,6 +87,7 @@ export const adminAPI = {
   getOrder: (id) => api.get(`/admin/orders/${id}`),
   updateOrderStatus: (id, status) => api.put(`/admin/orders/${id}/status`, { status }),
   getStats: () => api.get('/admin/stats'),
+  getAudit: (params = {}) => api.get('/admin/audit', { params }),
 };
 
 export default api;

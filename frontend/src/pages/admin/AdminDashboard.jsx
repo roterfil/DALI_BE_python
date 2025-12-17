@@ -2,6 +2,9 @@ import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { adminAPI } from '../../api/api';
 import './AdminDashboard.css';
+import { useAuth } from '../../context/AuthContext';
+import EditPriceModal from '../../components/EditPriceModal';
+import AdminAudit from './AdminAudit'; 
 
 const AdminDashboard = () => {
   const navigate = useNavigate();
@@ -9,15 +12,29 @@ const AdminDashboard = () => {
   const [stats, setStats] = useState(null);
   const [orders, setOrders] = useState([]);
   const [inventory, setInventory] = useState([]);
+  const [selectedProduct, setSelectedProduct] = useState(null);
+  const [isPriceModalOpen, setIsPriceModalOpen] = useState(false);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('');
+  const [ordersView, setOrdersView] = useState('list');
 
   useEffect(() => {
     fetchStats();
     fetchOrders();
     fetchInventory();
   }, []);
+
+  const { isSuperAdmin } = useAuth();
+
+  const openPriceModal = (product) => {
+    setSelectedProduct(product);
+    setIsPriceModalOpen(true);
+  };
+
+  const handlePriceSaved = (newPrice) => {
+    setInventory((prev) => prev.map((p) => (p.product_id === selectedProduct.product_id ? { ...p, product_price: newPrice } : p)));
+  };
 
   const fetchStats = async () => {
     try {
@@ -47,6 +64,16 @@ const AdminDashboard = () => {
       setInventory(response.data || []);
     } catch (error) {
       console.error('Error fetching inventory:', error);
+    }
+  };
+
+  const [audits, setAudits] = useState([]);
+  const fetchAudits = async () => {
+    try {
+      const response = await adminAPI.getAudit({ limit: 100 });
+      setAudits(response.data || []);
+    } catch (error) {
+      console.error('Error fetching audits:', error);
     }
   };
 
@@ -92,6 +119,13 @@ const AdminDashboard = () => {
     return <div className="admin-loading">Loading...</div>;
   }
 
+  // Fetch audits when audit tab selected
+  useEffect(() => {
+    if (activeTab === 'audit') {
+      fetchAudits();
+    }
+  }, [activeTab]);
+
   return (
     <div className="admin-dashboard">
       <aside className="admin-sidebar">
@@ -135,6 +169,12 @@ const AdminDashboard = () => {
             </svg>
             Inventory
           </button>
+          <button
+            className={activeTab === 'audit' ? 'active' : ''}
+            onClick={() => setActiveTab('audit')}
+          >
+            Audit
+          </button>
         </nav>
 
         <button className="logout-btn" onClick={handleLogout}>
@@ -176,6 +216,44 @@ const AdminDashboard = () => {
                 <div className="stat-info">
                   <h3>{stats?.pending_orders || 0}</h3>
                   <p>Pending Orders</p>
+                </div>
+              </div>
+
+              <div className="stat-card">
+                <div className="stat-icon active-icon">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <path d="M3 12h18"></path>
+                    <path d="M12 3v18"></path>
+                  </svg>
+                </div>
+                <div className="stat-info">
+                  <h3>{stats?.active_orders || 0}</h3>
+                  <p>Active Orders</p>
+                </div>
+              </div>
+
+              <div className="stat-card">
+                <div className="stat-icon completed-icon">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <polyline points="20 6 9 17 4 12"></polyline>
+                  </svg>
+                </div>
+                <div className="stat-info">
+                  <h3>{stats?.completed_orders || 0}</h3>
+                  <p>Completed Orders</p>
+                </div>
+              </div>
+
+              <div className="stat-card">
+                <div className="stat-icon cancelled-icon">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <line x1="18" y1="6" x2="6" y2="18"></line>
+                    <line x1="6" y1="6" x2="18" y2="18"></line>
+                  </svg>
+                </div>
+                <div className="stat-info">
+                  <h3>{stats?.cancelled_orders || 0}</h3>
+                  <p>Cancelled Orders</p>
                 </div>
               </div>
 
@@ -241,7 +319,13 @@ const AdminDashboard = () => {
         {activeTab === 'orders' && (
           <div className="orders-tab">
             <div className="tab-header">
-              <h1>Orders</h1>
+              <div style={{display: 'flex', alignItems: 'center', gap: 16}}>
+                <h1 style={{margin: 0}}>Orders</h1>
+                <div className="orders-subtabs">
+                  <button className={ordersView === 'list' ? 'active' : ''} onClick={() => setOrdersView('list')}>List</button>
+                  <button className={ordersView === 'stats' ? 'active' : ''} onClick={() => setOrdersView('stats')}>Stats</button>
+                </div>
+              </div>
               <input
                 type="text"
                 placeholder="Search orders..."
@@ -252,55 +336,110 @@ const AdminDashboard = () => {
                 }}
               />
             </div>
-
-            <table className="orders-table">
-              <thead>
-                <tr>
-                  <th>Order ID</th>
-                  <th>Customer</th>
-                  <th>Items</th>
-                  <th>Total</th>
-                  <th>Payment</th>
-                  <th>Status</th>
-                  <th>Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {orders.map((order) => (
-                  <tr key={order.order_id}>
-                    <td>#{order.order_id}</td>
-                    <td>
-                      {order.account?.first_name} {order.account?.last_name}
-                      <br />
-                      <small>{order.account?.email}</small>
-                    </td>
-                    <td>{order.order_items?.length || 0} items</td>
-                    <td>₱{parseFloat(order.total_price).toFixed(2)}</td>
-                    <td>{order.payment_status}</td>
-                    <td>
-                      <select
-                        value={order.shipping_status}
-                        onChange={(e) => handleUpdateStatus(order.order_id, e.target.value)}
-                        className={`status-select ${getStatusColor(order.shipping_status)}`}
-                      >
-                        <option value="PROCESSING">Processing</option>
-                        <option value="PREPARING_FOR_SHIPMENT">Preparing for Shipment</option>
-                        <option value="IN_TRANSIT">In Transit</option>
-                        <option value="DELIVERED">Delivered</option>
-                        <option value="COLLECTED">Collected</option>
-                        <option value="CANCELLED">Cancelled</option>
-                        <option value="DELIVERY_FAILED">Delivery Failed</option>
-                      </select>
-                    </td>
-                    <td>
-                      <Link to={`/admin/orders/${order.order_id}`} className="view-btn">
-                        View
-                      </Link>
-                    </td>
+            {ordersView === 'list' ? (
+              <table className="orders-table">
+                <thead>
+                  <tr>
+                    <th>Order ID</th>
+                    <th>Customer</th>
+                    <th>Items</th>
+                    <th>Total</th>
+                    <th>Payment</th>
+                    <th>Status</th>
+                    <th>Actions</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
+                </thead>
+                <tbody>
+                  {orders.map((order) => (
+                    <tr key={order.order_id}>
+                      <td>#{order.order_id}</td>
+                      <td>
+                        {order.account?.first_name} {order.account?.last_name}
+                        <br />
+                        <small>{order.account?.email}</small>
+                      </td>
+                      <td>{order.order_items?.length || 0} items</td>
+                      <td>₱{parseFloat(order.total_price).toFixed(2)}</td>
+                      <td>{order.payment_status}</td>
+                      <td>
+                        <select
+                          value={order.shipping_status}
+                          onChange={(e) => handleUpdateStatus(order.order_id, e.target.value)}
+                          className={`status-select ${getStatusColor(order.shipping_status)}`}
+                        >
+                          <option value="PROCESSING">Processing</option>
+                          <option value="PREPARING_FOR_SHIPMENT">Preparing for Shipment</option>
+                          <option value="IN_TRANSIT">In Transit</option>
+                          <option value="DELIVERED">Delivered</option>
+                          <option value="COLLECTED">Collected</option>
+                          <option value="CANCELLED">Cancelled</option>
+                          <option value="DELIVERY_FAILED">Delivery Failed</option>
+                        </select>
+                      </td>
+                      <td>
+                        <Link to={`/admin/orders/${order.order_id}`} className="view-btn">
+                          View
+                        </Link>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            ) : (
+              <div className="orders-stats">
+                <div className="stats-grid" style={{gridTemplateColumns: 'repeat(4, 1fr)'}}>
+                  <div className="stat-card">
+                    <div className="stat-icon orders-icon">
+                      <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                        <path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"></path>
+                      </svg>
+                    </div>
+                    <div className="stat-info">
+                      <h3>{stats?.total_orders || 0}</h3>
+                      <p>Total Orders</p>
+                    </div>
+                  </div>
+
+                  <div className="stat-card">
+                    <div className="stat-icon active-icon">
+                      <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                        <path d="M3 12h18"></path>
+                        <path d="M12 3v18"></path>
+                      </svg>
+                    </div>
+                    <div className="stat-info">
+                      <h3>{stats?.active_orders || 0}</h3>
+                      <p>Active Orders</p>
+                    </div>
+                  </div>
+
+                  <div className="stat-card">
+                    <div className="stat-icon completed-icon">
+                      <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                        <polyline points="20 6 9 17 4 12"></polyline>
+                      </svg>
+                    </div>
+                    <div className="stat-info">
+                      <h3>{stats?.completed_orders || 0}</h3>
+                      <p>Completed Orders</p>
+                    </div>
+                  </div>
+
+                  <div className="stat-card">
+                    <div className="stat-icon cancelled-icon">
+                      <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                        <line x1="18" y1="6" x2="6" y2="18"></line>
+                        <line x1="6" y1="6" x2="18" y2="18"></line>
+                      </svg>
+                    </div>
+                    <div className="stat-info">
+                      <h3>{stats?.cancelled_orders || 0}</h3>
+                      <p>Cancelled Orders</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
         )}
 
@@ -356,6 +495,11 @@ const AdminDashboard = () => {
                     </td>
                     <td>
                       <button className="edit-btn">Edit</button>
+                      {isSuperAdmin && (
+                        <button className="edit-price-btn" style={{ marginLeft: 8 }} onClick={() => openPriceModal(product)}>
+                          Edit Price
+                        </button>
+                      )}
                     </td>
                   </tr>
                 ))}
@@ -363,7 +507,28 @@ const AdminDashboard = () => {
             </table>
           </div>
         )}
+
+        {/* Audit Tab */}
+        {activeTab === 'audit' && (
+          <div className="audit-tab-container">
+             <div className="tab-header" style={{ marginBottom: 20 }}>
+                <h1 style={{ margin: 0 }}>Audit Log</h1>
+                <div style={{ fontSize: '0.9rem', color: '#666' }}>Track system changes and user activity</div>
+             </div>
+             <AdminAudit />
+          </div>
+        )}
       </main>
+
+      {isPriceModalOpen && selectedProduct && (
+        <EditPriceModal
+          product={selectedProduct}
+          open={isPriceModalOpen}
+          onClose={() => setIsPriceModalOpen(false)}
+          onSaved={(newPrice) => { handlePriceSaved(newPrice); setIsPriceModalOpen(false); }}
+        />
+      )}
+
     </div>
   );
 };

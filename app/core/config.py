@@ -52,6 +52,9 @@ class Settings(BaseSettings):
     # Admin (optional - for seeding admin accounts)
     ADMIN_EMAIL: Optional[str] = None
     ADMIN_PASSWORD: Optional[str] = None
+    # Super Admin (optional - for seeding super admin account)
+    SUPER_ADMIN_EMAIL: Optional[str] = None
+    SUPER_ADMIN_PASSWORD: Optional[str] = None
     
     class Config:
         env_file = ".env"

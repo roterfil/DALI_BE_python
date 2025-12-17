@@ -118,6 +118,7 @@ class Account(Base):
     reset_password_token = Column(String(255))
     is_email_verified = Column(Boolean, default=False)
     email_verification_token = Column(String(255))
+    is_super_admin = Column(Boolean, default=False)
     
     # Relationships
     addresses = relationship("Address", back_populates="account", cascade="all, delete-orphan", order_by="Address.is_default.desc(), Address.address_id")
@@ -163,6 +164,7 @@ class AdminAccount(Base):
     admin_id = Column(Integer, primary_key=True, index=True)
     account_email = Column(String(255), unique=True, nullable=False, index=True)
     password_hash = Column(String(255), nullable=False)
+    is_super_admin = Column(Boolean, default=False)
 
 
 # Address Model
@@ -289,3 +291,17 @@ class OrderHistory(Base):
     
     # Relationships
     order = relationship("Order", back_populates="order_history")
+
+
+# Audit Log Model
+class AuditLog(Base):
+    __tablename__ = "audit_logs"
+
+    # DB currently has column `log_id`; map it to attribute `audit_id` for consistency
+    audit_id = Column('log_id', Integer, primary_key=True, index=True)
+    actor_email = Column(String(255), nullable=False)
+    action = Column(String(255), nullable=False)
+    entity_type = Column(String(255), nullable=False)
+    entity_id = Column(Integer, nullable=True)
+    details = Column(Text)
+    created_at = Column(DateTime, default=datetime.utcnow)

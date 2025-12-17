@@ -2,12 +2,15 @@ import { Link } from 'react-router-dom';
 import { useState } from 'react';
 import { useCart } from '../context/CartContext';
 import { useToast } from './Toast';
+import { useAuth } from '../context/AuthContext';
+import EditPriceModal from './EditPriceModal';
 
 const ProductCard = ({ product, availableToAdd = null }) => {
   const { addToCart } = useCart();
   const { showToast } = useToast();
   const [quantity, setQuantity] = useState(1);
   const [loading, setLoading] = useState(false);
+  const [isModalOpen, setIsModalOpen] = useState(false);
 
   const formatPrice = (price) => {
     return `₱${price.toLocaleString('en-PH', {
@@ -33,6 +36,8 @@ const ProductCard = ({ product, availableToAdd = null }) => {
   const allInCart = availableToAdd !== null && availableToAdd <= 0;
   const maxQuantity = availableToAdd || product.product_quantity;
 
+  const { isSuperAdmin } = useAuth();
+
   return (
     <div className="product-card">
       <Link className="product-card-body" to={`/product/${product.product_id}`}>
@@ -49,6 +54,11 @@ const ProductCard = ({ product, availableToAdd = null }) => {
         </div>
       </Link>
       <div className="product-card-actions">
+        {isSuperAdmin && (
+          <div style={{ padding: '0 12px 8px 12px' }}>
+            <button className="edit-price-btn" onClick={() => setIsModalOpen(true)}>Edit Price</button>
+          </div>
+        )}
         <form onSubmit={handleAddToCart}>
           {!isOutOfStock && !allInCart ? (
             <div className="product-card-quantity-form">
@@ -80,6 +90,14 @@ const ProductCard = ({ product, availableToAdd = null }) => {
           )}
         </form>
       </div>
+      {isSuperAdmin && (
+        <EditPriceModal
+          product={product}
+          open={isModalOpen}
+          onClose={() => setIsModalOpen(false)}
+          onSaved={(newPrice) => { product.product_price = newPrice; }}
+        />
+      )}
     </div>
   );
 };

@@ -23,6 +23,42 @@ from app.routers import (
 # Create database tables
 Base.metadata.create_all(bind=engine)
 
+# Seed super admin account if configured
+from sqlalchemy.orm import Session
+from app.models import Account, AdminAccount
+from app.core.security import get_password_hash
+
+def seed_super_admin():
+    if settings.SUPER_ADMIN_EMAIL and settings.SUPER_ADMIN_PASSWORD:
+        db = Session(bind=engine)
+        try:
+            super_admin_account = db.query(Account).filter(Account.account_email == settings.SUPER_ADMIN_EMAIL).first()
+            if not super_admin_account:
+                super_admin_account = Account(
+                    account_first_name="Super",
+                    account_last_name="Admin",
+                    account_email=settings.SUPER_ADMIN_EMAIL,
+                    password_hash=get_password_hash(settings.SUPER_ADMIN_PASSWORD),
+                    is_super_admin=True,
+                    is_email_verified=True
+                )
+                db.add(super_admin_account)
+                db.commit()
+
+            admin = db.query(AdminAccount).filter(AdminAccount.account_email == settings.SUPER_ADMIN_EMAIL).first()
+            if not admin:
+                admin = AdminAccount(
+                    account_email=settings.SUPER_ADMIN_EMAIL,
+                    password_hash=get_password_hash(settings.SUPER_ADMIN_PASSWORD),
+                    is_super_admin=True
+                )
+                db.add(admin)
+                db.commit()
+        finally:
+            db.close()
+
+seed_super_admin()
+
 # Create FastAPI app
 app = FastAPI(
     title="DALI E-Commerce",

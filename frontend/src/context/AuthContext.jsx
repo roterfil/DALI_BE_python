@@ -37,8 +37,14 @@ export const AuthProvider = ({ children }) => {
         // Check admin auth
         const storedAdmin = localStorage.getItem('admin');
         if (storedAdmin) {
-          // Admin doesn't have a profile endpoint, just verify session is valid
-          setAdmin(JSON.parse(storedAdmin));
+                // Admin stored object may include is_super_admin flag
+                try {
+                  const parsed = JSON.parse(storedAdmin);
+                  setAdmin(parsed);
+                } catch (e) {
+                  setAdmin(null);
+                  localStorage.removeItem('admin');
+                }
         }
       } catch (error) {
         localStorage.removeItem('admin');
@@ -87,7 +93,8 @@ export const AuthProvider = ({ children }) => {
   const adminLogin = async (email, password) => {
     // Backend returns { message, admin_email }
     const response = await authService.adminLogin(email, password);
-    const adminData = { email: response.admin_email };
+    // response now includes is_super_admin
+    const adminData = { email: response.admin_email, is_super_admin: !!response.is_super_admin };
     setAdmin(adminData);
     localStorage.setItem('admin', JSON.stringify(adminData));
     return response;
@@ -110,6 +117,7 @@ export const AuthProvider = ({ children }) => {
     loading,
     isAuthenticated: !!user,
     isAdmin: !!admin,
+    isSuperAdmin: !!(admin && admin.is_super_admin),
     login,
     register,
     logout,

@@ -27,6 +27,14 @@ const adminService = {
     return response.data;
   },
 
+  // Update product price (super admin only)
+  updatePrice: async (productId, price) => {
+    const response = await api.put(`/admin/products/${productId}/price`, {
+      price,
+    });
+    return response.data;
+  },
+
   // Get all orders
   getOrders: async (search = '') => {
     const response = await api.get('/admin/orders', {

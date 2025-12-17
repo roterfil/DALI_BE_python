@@ -21,6 +21,7 @@ const AdminHeader = () => {
           <nav className="nav">
             <Link to="/admin/inventory">Inventory</Link>
             <Link to="/admin/orders">Orders</Link>
+            <Link to="/admin/audit">Audit</Link>
           </nav>
         </div>
         <div className="admin-header-right">

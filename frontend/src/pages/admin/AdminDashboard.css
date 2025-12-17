@@ -190,6 +190,26 @@
   border-color: #a1127c;
 }
 
+/* Orders subtabs */
+.orders-subtabs {
+  display: inline-flex;
+  gap: 8px;
+  margin-left: 8px;
+}
+.orders-subtabs button {
+  padding: 6px 10px;
+  border-radius: 8px;
+  border: 1px solid #eee;
+  background: #fff;
+  cursor: pointer;
+  font-size: 0.9rem;
+}
+.orders-subtabs button.active {
+  background: #a1127c;
+  color: #fff;
+  border-color: #a1127c;
+}
+
 /* Tables */
 .orders-table,
 .inventory-table {
