@@ -36,12 +36,12 @@ const VerifyEmail = () => {
     verifyEmail();
   }, [searchParams]);
   
+  // Verify screen
   return (
     <div className="auth-page">
       <div className="auth-container">
         <div className="auth-header">
-          <h1>DALI</h1>
-          <h2>Email Verification</h2>
+        
         </div>
         
         <div className="auth-content">

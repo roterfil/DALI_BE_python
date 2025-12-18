@@ -266,7 +266,15 @@ const Profile = () => {
                             )}
                           </div>
                         </div>
-                        <div>
+                        <div
+                        style={{ 
+                            display: 'flex', 
+                            gap: '15px',
+                            alignSelf: 'start',  
+                            // Add align-items: 'center' if you want the buttons centered vertically with text
+                          }}
+>
+                          
                           <button
                             onClick={() => setEditingAddress(addr)}
                             className="edit-link"
@@ -274,7 +282,8 @@ const Profile = () => {
                               background: 'none',
                               border: 'none',
                               cursor: 'pointer',
-                              marginRight: '10px',
+                              whiteSpace: 'nowrap', 
+                              
                             }}
                           >
                             Edit
@@ -287,7 +296,8 @@ const Profile = () => {
                                 background: 'none',
                                 border: 'none',
                                 cursor: 'pointer',
-                                marginRight: '10px',
+                                whiteSpace: 'nowrap', 
+                            
                                 color: '#28a745',
                               }}
                             >
@@ -302,6 +312,7 @@ const Profile = () => {
                               border: 'none',
                               cursor: 'pointer',
                               color: '#dc3545',
+                              whiteSpace: 'nowrap', 
                             }}
                           >
                             Delete
