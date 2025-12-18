@@ -52,7 +52,7 @@ const ResetPassword = () => {
     setLoading(true);
 
     try {
-      await authService.resetPassword(token, password);
+      await authService.resetPassword(token, password, confirmPassword);
       setSuccess('Password reset successful! Redirecting to login...');
       setTimeout(() => {
         navigate('/login', { state: { success: 'Password reset successful. Please login.' } });

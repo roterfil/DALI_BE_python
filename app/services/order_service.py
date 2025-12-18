@@ -296,6 +296,19 @@ class OrderService:
                 product = db.query(Product).filter(Product.product_id == item.product_id).first()
                 if product:
                     product.product_quantity += item.quantity
+
+        # If collected (pickup completed), mark COD payments as PAID
+        if status == ShippingStatus.COLLECTED:
+            # Only update payment if it was pending (e.g., COD)
+            if order.payment_status == PaymentStatus.PENDING:
+                order.payment_status = PaymentStatus.PAID
+                # Add history entry indicating payment received on collection
+                paid_history = OrderHistory(
+                    order_id=order.order_id,
+                    status="PAID",
+                    notes="Payment received on collection"
+                )
+                db.add(paid_history)
         
         # Use custom notes if provided, otherwise generate default
         history_notes = notes if notes else f"Status updated to {status.value}"
