@@ -1,13 +1,11 @@
 import { useState } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { useCart } from '../context/CartContext';
 
 const Login = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const { login } = useAuth();
-  const { mergeGuestCart } = useCart();
 
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -27,8 +25,6 @@ const Login = () => {
 
     try {
       await login(email, password);
-      // Merge any guest cart into user cart before redirecting
-      if (mergeGuestCart) await mergeGuestCart();
       navigate(from, { replace: true });
     } catch (err) {
       setError(err.response?.data?.detail || 'Invalid email or password.');

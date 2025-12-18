@@ -160,7 +160,10 @@ const Checkout = () => {
   };
 
   const formatPrice = (price) => {
-    return `₱${price.toLocaleString('en-PH', {
+    if (price === null || price === undefined || price === '') return '—';
+    const n = Number(price);
+    if (Number.isNaN(n)) return String(price);
+    return `₱${n.toLocaleString('en-PH', {
       minimumFractionDigits: 2,
       maximumFractionDigits: 2,
     })}`;
@@ -517,10 +520,10 @@ const Checkout = () => {
             <div key={item.product_id} className="cart-item-summary-row">
               <img src={item.image ? `/images/products/${item.image}` : `/images/products/default.png`} alt={item.product_name} />
               <div className="item-details">
-                <p className="name">{item.product_name}</p>
+                <p className="name">{item.product_name || `Product #${item.product_id}`}</p>
                 <p className="qty">Qty: {item.quantity}</p>
               </div>
-              <p className="price">{formatPrice(item.subtotal)}</p>
+              <p className="price">{formatPrice(item.subtotal ?? (Number(item.product_price || 0) * Number(item.quantity || 0)))}</p>
             </div>
           ))}
         </div>
