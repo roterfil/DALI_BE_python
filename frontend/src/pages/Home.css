@@ -1,0 +1,405 @@
+/* --- Global Styles --- */
+:root {
+  --dali-pink: #b11576;
+  --dali-pink-light: rgba(177, 21, 118, 0.15); /* Soft magenta for shadows */
+  --dali-pink-glow: rgba(177, 21, 118, 0.25);  /* Stronger glow for hover */
+  --text-dark: #333333;
+  --text-gray: #666666;
+}
+
+/* --- Hero Section --- */
+.hero-section {
+  padding: 80px 0;
+  background: radial-gradient(circle at 80% 50%, #fff5f9 0%, #ffffff 100%);
+  overflow: hidden;
+  font-family: 'Inter', sans-serif;
+}
+
+.hero-container {
+  max-width: 1200px;
+  margin: 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 60px;
+  padding: 0 20px;
+}
+
+.hero-content {
+  flex: 1;
+  z-index: 10;
+}
+
+.hero-title {
+  font-size: 4rem;
+  font-weight: 800;
+  color: var(--text-dark);
+  line-height: 1.1;
+  margin-bottom: 20px;
+}
+
+.brand-highlight {
+  color: var(--dali-pink);
+  text-shadow: 0 10px 30px var(--shadow-glow);
+}
+
+.hero-description {
+  font-size: 1.1rem;
+  color: var(--text-gray);
+  line-height: 1.6;
+  margin-bottom: 35px;
+  max-width: 520px;
+}
+
+/* --- Buttons --- */
+.hero-buttons {
+  display: flex;
+  gap: 15px;
+}
+
+.btn-primary {
+  background-color: var(--dali-pink);
+  color: white;
+  padding: 14px 35px;
+  border-radius: 30px;
+  text-decoration: none;
+  font-weight: 600;
+  transition: all 0.3s ease;
+  border: 2px solid var(--dali-pink);
+}
+
+.btn-primary:hover {
+  background-color: #901160;
+  transform: translateY(-2px);
+  box-shadow: 0 10px 20px var(--shadow-glow);
+}
+
+.btn-secondary {
+  border: 2px solid #e0e0e0;
+  color: var(--dali-pink);
+  padding: 14px 35px;
+  border-radius: 30px;
+  text-decoration: none;
+  font-weight: 600;
+  transition: all 0.3s ease;
+}
+
+.btn-secondary:hover {
+  border-color: var(--dali-pink);
+  background-color: #fff0f6;
+}
+
+/* --- Hero Image & Floating Elements --- */
+.hero-image-wrapper {
+  flex: 1.2;
+  position: relative;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+.main-img {
+  width: 100%;
+  max-width: 550px;
+  z-index: 2;
+  position: relative;
+  /* ADDED: Soft magenta drop shadow to help the bag blend with the glow */
+  filter: drop-shadow(0px 30px 50px var(--dali-pink-light));
+}
+
+/* Soft background glow */
+.hero-glow {
+  position: absolute;
+  width: 140%; /* Made slightly larger */
+  height: 140%;
+  /* UPDATED: Increased opacity from 0.08 to 0.15 for a more visible magenta haze */
+  background: radial-gradient(circle, rgba(177, 21, 118, 0.18) 0%, rgba(255, 255, 255, 0) 70%);
+  z-index: 1;
+  pointer-events: none;
+}
+
+/* --- Badge Styling & Glowing Transition --- */
+.info-badge {
+  position: absolute;
+  background: white;
+  padding: 15px 20px;
+  border-radius: 18px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  z-index: 10;
+  box-shadow: 0 15px 35px var(--dali-pink-light);
+  transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+  cursor: pointer;
+  animation: float 6s ease-in-out infinite;
+}
+
+/* Hover Glowing Transition */
+.info-badge:hover {
+  transform: translateY(-8px) scale(1.03);
+  box-shadow: 0 20px 40px var(--shadow-glow);
+}
+
+.badge-icon-img {
+  width: 45px;
+  height: auto;
+}
+
+.badge-text {
+  display: flex;
+  flex-direction: column;
+}
+
+.badge-text strong {
+  font-size: 1rem;
+  color: var(--text-dark);
+}
+
+.badge-text span {
+  font-size: 0.75rem;
+  color: #888;
+}
+
+/* --- Precise Badge Placement --- */
+.badge-top {
+  top: 5%;
+  left: 10%;
+  flex-direction: column;
+  text-align: center;
+}
+
+.badge-bottom-left {
+  bottom: 2%;
+  left: -8%;
+}
+
+.badge-bottom-right {
+  bottom: 18%;
+  right: -10%;
+}
+
+/* --- Fixed Arrow Positions --- */
+.arrow {
+  position: absolute;
+  z-index: 5;
+  width: 55px;
+  pointer-events: none;
+  opacity: 0.7;
+}
+
+.arrow-top-left {
+  top: 30%;
+  left: 5%;
+  transform: rotate(-15deg);
+}
+
+.arrow-top-right {
+  top: 15%;
+  right: 15%;
+  transform: rotate(25deg);
+}
+
+.arrow-bottom-right {
+  bottom: 8%;
+  right: 15%;
+  transform: rotate(-10deg);
+}
+
+/* --- Floating Animation --- */
+@keyframes float {
+  0% { transform: translateY(0px); }
+  50% { transform: translateY(-10px); }
+  100% { transform: translateY(0px); }
+}
+
+.badge-bottom-left { animation-delay: 1s; }
+.badge-bottom-right { animation-delay: 2s; }
+
+/* --- Product Range Section --- */
+.product-range-section {
+  padding: 80px 0;
+  background-color: #ffffff;
+  width: 100%;
+  /* Ensures everything inside is centered */
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+/* --- The Grid Container --- */
+.category-grid {
+  display: grid !important;
+  /* Use auto instead of 1fr to prevent cards from stretching too wide if not needed */
+  grid-template-columns: repeat(2, minmax(0, 600px)) !important; 
+  /* This creates the space between cards */
+  gap: 30px !important; 
+  width: 100%;
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 20px;
+  /* Centers the grid items if the container is wider than the cards */
+  justify-content: center; 
+}
+
+/* --- The Cards --- */
+.category-card {
+  display: flex !important;
+  flex-direction: row !important; 
+  background: #ffffff;
+  border-radius: 30px;
+  /* Changing to 'visible' if you want images to pop out, 
+     but 'hidden' is safer for keeping cards separated */
+  overflow: hidden; 
+  box-shadow: 0 15px 45px rgba(0, 0, 0, 0.05);
+  transition: all 0.3s ease;
+  min-height: 300px;
+  border: 1px solid #f2f2f2;
+  width: 100%;
+  box-sizing: border-box; 
+}
+
+/* --- Image Handling --- */
+.card-image-wrapper {
+  flex: 1 !important;
+  display: flex !important;
+  align-items: flex-end !important;
+  justify-content: flex-end !important;
+  position: relative;
+  /* Prevents the large image from expanding the card's width */
+  min-width: 0; 
+}
+
+.card-image-wrapper img {
+  /* Reduced from 140% to prevent extreme overlap/spacing issues */
+  width: 120% !important; 
+  height: auto;
+  object-fit: contain;
+  /* Keeps the image tucked into the corner nicely */
+  transform: translate(5%, 5%); 
+  filter: drop-shadow(0 15px 25px rgba(0,0,0,0.1));
+}
+
+/* --- Mobile Responsiveness --- */
+@media (max-width: 992px) {
+  .category-grid {
+    grid-template-columns: 1fr !important;
+    max-width: 600px;
+  }
+  
+  .category-card {
+    flex-direction: column !important;
+    min-height: auto;
+  }
+  
+  .card-content {
+    text-align: center !important;
+    align-items: center !important;
+  }
+
+  .card-image-wrapper img {
+    width: 70% !important;
+    transform: translate(0, 0);
+    margin: 0 auto 20px;
+  }
+}
+
+/* --- Why Choose Us Section --- */
+.why-choose-us-section {
+  padding: 100px 0;
+  background-color: #ffffff;
+}
+
+.why-choose-container {
+  display: flex;
+  align-items: center;
+  gap: 80px; /* Space between the cards and the text */
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 20px;
+}
+
+/* --- Left Side: Cards --- */
+.features-list {
+  flex: 1.2;
+  display: flex;
+  flex-direction: column;
+  gap: 30px;
+}
+
+.feature-card {
+  background: #ffffff;
+  padding: 35px;
+  border-radius: 25px;
+  display: flex;
+  align-items: flex-start;
+  gap: 20px;
+  /* Soft, spread out shadow like in the 2nd image */
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.06);
+  transition: transform 0.3s ease;
+}
+
+.feature-card:hover {
+  transform: translateY(-5px);
+}
+
+.feature-icon {
+  width: 45px;
+  height: 45px;
+  flex-shrink: 0;
+}
+
+.feature-text h4 {
+  font-size: 1.5rem;
+  color: #333;
+  margin-bottom: 12px;
+  font-weight: 600;
+}
+
+.feature-text p {
+  color: #666;
+  line-height: 1.5;
+  font-size: 1rem;
+  margin: 0;
+}
+
+/* --- Right Side: Text --- */
+.why-choose-content {
+  flex: 1;
+}
+
+.section-title-pink {
+  color: var(--dali-pink);
+  font-size: 2.5rem;
+  font-weight: 800;
+  margin-bottom: 5px;
+}
+
+.section-subtitle-pink {
+  color: var(--dali-pink);
+  font-size: 1.8rem;
+  font-weight: 400; /* Lighter weight as seen in image 2 */
+  margin-bottom: 30px;
+  opacity: 0.9;
+}
+
+.why-choose-content p {
+  color: #555;
+  line-height: 1.7;
+  margin-bottom: 20px;
+  font-size: 1.05rem;
+}
+
+/* Mobile Responsiveness */
+@media (max-width: 992px) {
+  .why-choose-container {
+    flex-direction: column-reverse; /* Text on top for mobile */
+    gap: 50px;
+  }
+  
+  .section-title-pink {
+    font-size: 2rem;
+  }
+
+  .feature-card {
+    padding: 25px;
+  }
+}
