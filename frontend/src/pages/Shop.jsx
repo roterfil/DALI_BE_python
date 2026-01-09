@@ -3,6 +3,16 @@ import { useSearchParams } from 'react-router-dom';
 import { productService } from '../services';
 import { ProductGrid } from '../components';
 
+const categoryImages = {
+  "Beverage": "images/beverage-image.png",
+  "Hygiene": "images/hygiene-image.png",
+  "Canned Goods": "images/canned-goods.png",
+  "Snacks": "images/snacks.png",
+  "Frozen Goods": "images/frozen-image.png",
+  "Beverages": "images/beverages.png",
+  "Cooking Essentials": "images/cooking.png",
+  "default": "images/default-image.png"
+};
 const Shop = () => {
   const [searchParams, setSearchParams] = useSearchParams();
   const [products, setProducts] = useState([]);
@@ -10,6 +20,10 @@ const Shop = () => {
   const [subcategories, setSubcategories] = useState([]);
   const [availableQuantities, setAvailableQuantities] = useState({});
   const [loading, setLoading] = useState(true);
+  
+  // State to control which "page" we are on
+  const [showLanding, setShowLanding] = useState(!searchParams.get('category') && !searchParams.get('query'));
+  
   const [query, setQuery] = useState(searchParams.get('query') || '');
   const [selectedCategory, setSelectedCategory] = useState(
     searchParams.get('category') || ''
@@ -18,12 +32,13 @@ const Shop = () => {
     searchParams.get('subcategory') || ''
   );
 
-  // Fetch categories on mount
+  // Constants for branding colors
+  const DALI_PINK = '#b21984';
+
   useEffect(() => {
     const loadCategories = async () => {
       try {
         const data = await productService.getCategories();
-        // Adjust based on API structure (handling both array and object responses)
         setCategories(data.categories || data || []);
       } catch (error) {
         console.error('Error loading categories:', error);
@@ -32,7 +47,6 @@ const Shop = () => {
     loadCategories();
   }, []);
 
-  // Fetch subcategories when category changes
   useEffect(() => {
     const loadSubcategories = async () => {
       if (selectedCategory) {
@@ -84,17 +98,86 @@ const Shop = () => {
   const handleCategoryChange = (category) => {
     setSelectedCategory(category === selectedCategory ? '' : category);
     setSelectedSubcategory('');
+    setShowLanding(false); 
   };
 
   const handleReset = () => {
     setQuery('');
     setSelectedCategory('');
-    setSelectedSubcategory('');
+    setSelectedSubcategory(''); 
   };
+
+  // --- Sub-component: Categories Landing Page ---
+  const CategoriesLanding = () => (
+  <div style={{ padding: '40px 5%', textAlign: 'center', backgroundColor: '#fff' }}>
+    
+
+    <h1 style={{ fontSize: '64px', fontWeight: 'bold', color: DALI_PINK, margin: '20px 0 10px 0' }}>DALI Online</h1>
+    <p style={{ color: '#666', maxWidth: '600px', margin: '0 auto 50px auto', lineHeight: '1.5' }}>
+      The same hard-to-beat prices you love, now just a click away. Shop smart and save big on your everyday groceries with DALI Online.
+    </p>
+
+    <h2 style={{ textAlign: 'left', fontSize: '24px', fontWeight: 'bold', color: '#444', marginBottom: '30px' }}>Popular Categories</h2>
+    
+    <div style={{ 
+      display: 'grid', 
+      gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', 
+      gap: '25px',
+      paddingBottom: '40px'
+    }}>
+      {categories.map((cat) => (
+        <div key={cat} style={{ 
+          backgroundColor: '#fff', 
+          borderRadius: '25px', 
+          padding: '30px', 
+          boxShadow: '0 8px 24px rgba(0,0,0,0.08)', 
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+          transition: 'transform 0.2s',
+          border: '1px solid #f0f0f0'
+        }}>
+          <div style={{ height: '180px', width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '20px' }}>
+            
+            <img 
+              src={categoryImages[cat] || categoryImages["default"]} 
+              alt={cat} 
+              style={{ maxWidth: '100%', maxHeight: '100%', objectFit: 'contain' }} 
+            />
+          </div>
+          
+          <h3 style={{ fontSize: '24px', fontWeight: 'bold', color: '#333', marginBottom: '25px' }}>{cat}</h3>
+          
+          <button 
+            onClick={() => handleCategoryChange(cat)} 
+            style={{ 
+              backgroundColor: DALI_PINK, 
+              color: 'white', 
+              border: 'none', 
+              padding: '12px 30px', 
+              borderRadius: '25px', 
+              fontWeight: 'bold',
+              width: '100%',
+              fontSize: '14px',
+              cursor: 'pointer',
+              boxShadow: '0 4px 10px rgba(178, 25, 132, 0.3)'
+      
+            }}>
+            Shop now
+          </button>
+        </div>
+      ))}
+    </div>
+  </div>
+);
+  // Decide which view to render
+  if (showLanding && !query && !selectedCategory) {
+    return <CategoriesLanding />;
+  }
 
   return (
     <div className="shop-layout" style={{ display: 'flex', padding: '20px 5%', gap: '30px', fontFamily: 'Arial, sans-serif' }}>
-      {/* Filter Sidebar (Styled like Admin Inventory) */}
+      {/* Filter Sidebar */}
       <aside style={{ width: '250px', flexShrink: 0 }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
           <h2 style={{ fontSize: '24px', fontWeight: '600', margin: 0, color: '#333' }}>Filters</h2>
@@ -120,21 +203,19 @@ const Shop = () => {
           </h3>
           
           <ul style={{ listStyle: 'none', padding: 0 }}>
-            {/* All Categories Option */}
             <li style={{ marginBottom: '12px', display: 'flex', alignItems: 'center' }}>
               <input
                 type="checkbox"
                 id="cat-all"
                 checked={selectedCategory === ''}
-                onChange={() => handleCategoryChange('')}
-                style={{ width: '18px', height: '18px', marginRight: '10px', accentColor: '#b21984' }}
+                onChange={() => handleReset()}
+                style={{ width: '18px', height: '18px', marginRight: '10px', accentColor: DALI_PINK }}
               />
               <label htmlFor="cat-all" style={{ fontSize: '14px', color: '#444', cursor: 'pointer' }}>
                 All Categories
               </label>
             </li>
 
-            {/* Nested Categories List */}
             {categories.map((cat, index) => (
               <li key={cat} style={{ marginBottom: '12px' }}>
                 <div style={{ display: 'flex', alignItems: 'center' }}>
@@ -143,13 +224,13 @@ const Shop = () => {
                     id={`cat-${index}`}
                     checked={selectedCategory === cat}
                     onChange={() => handleCategoryChange(cat)}
-                    style={{ width: '18px', height: '18px', marginRight: '10px', accentColor: '#b21984' }}
+                    style={{ width: '18px', height: '18px', marginRight: '10px', accentColor: DALI_PINK }}
                   />
                   <label 
                     htmlFor={`cat-${index}`} 
                     style={{ 
                       fontSize: '14px', 
-                      color: selectedCategory === cat ? '#b21984' : '#444', 
+                      color: selectedCategory === cat ? DALI_PINK : '#444', 
                       fontWeight: selectedCategory === cat ? 'bold' : 'normal', 
                       cursor: 'pointer' 
                     }}
@@ -158,7 +239,6 @@ const Shop = () => {
                   </label>
                 </div>
                 
-                {/* Nested Subcategories (Only visible if parent category is selected) */}
                 {selectedCategory === cat && subcategories.length > 0 && (
                   <ul style={{ listStyle: 'none', padding: '10px 0 0 28px' }}>
                     {subcategories.map((subcat, subIndex) => (
@@ -168,11 +248,11 @@ const Shop = () => {
                           id={`subcat-${subIndex}`}
                           checked={selectedSubcategory === subcat}
                           onChange={() => setSelectedSubcategory(subcat === selectedSubcategory ? '' : subcat)}
-                          style={{ width: '16px', height: '16px', marginRight: '10px', accentColor: '#b21984' }}
+                          style={{ width: '16px', height: '16px', marginRight: '10px', accentColor: DALI_PINK }}
                         />
                         <label 
                           htmlFor={`subcat-${subIndex}`} 
-                          style={{ fontSize: '13px', color: selectedSubcategory === subcat ? '#b21984' : '#666', cursor: 'pointer' }}
+                          style={{ fontSize: '13px', color: selectedSubcategory === subcat ? DALI_PINK : '#666', cursor: 'pointer' }}
                         >
                           {subcat}
                         </label>
@@ -189,7 +269,7 @@ const Shop = () => {
       {/* Main Content Area */}
       <main style={{ flexGrow: 1 }}>
         <section style={{ 
-          backgroundColor: '#b21984', 
+          backgroundColor: DALI_PINK, 
           borderRadius: '10px', 
           height: '180px', 
           display: 'flex', 
@@ -214,6 +294,7 @@ const Shop = () => {
               placeholder="Search"
               value={query}
               onChange={(e) => setQuery(e.target.value)}
+              onFocus={() => setShowLanding(false)} // Switch view if searching
               style={{
                 width: '100%',
                 padding: '12px 12px 12px 45px',
@@ -230,7 +311,6 @@ const Shop = () => {
            {loading ? (
             <div style={{ textAlign: 'center', padding: '50px', color: '#666' }}>Loading products...</div>
           ) : products.length === 0 ? (
-            /* Error Message placed here inside the grid area */
             <div style={{ 
               textAlign: 'center', 
               padding: '80px 20px', 
