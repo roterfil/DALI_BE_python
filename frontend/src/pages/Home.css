@@ -381,6 +381,8 @@ html {
   font-size: 1.05rem;
 }
 
+
+
 /* Mobile Responsiveness */
 @media (max-width: 992px) {
   .why-choose-container {
@@ -394,5 +396,254 @@ html {
 
   .feature-card {
     padding: 25px;
+  }
+}
+
+
+/* --- Simplified Shopping Section --- */
+.cta-simplified-section {
+  padding: 60px 0 100px 0;
+  background-color: #ffffff;
+}
+
+.cta-simplified-container {
+  background: linear-gradient(90deg, #ffffff 0%, #fff0f7 100%);
+  border-radius: 50px;
+  display: flex;
+  align-items: center;
+  padding: 60px 80px;
+  gap: 40px;
+  max-width: 1200px;
+  margin: 0 auto;
+  border: 1px solid #fce4f0;
+  position: relative;
+  overflow: hidden;
+}
+
+.cta-simplified-content {
+  flex: 1.2;
+  z-index: 2;
+}
+
+.cta-simplified-title {
+  font-size: 3.2rem;
+  font-weight: 800;
+  color: var(--dali-pink);
+  line-height: 1.1;
+  margin-bottom: 25px;
+}
+
+.cta-simplified-description {
+  font-size: 1.15rem;
+  color: #555;
+  line-height: 1.6;
+  margin-bottom: 35px;
+  max-width: 550px;
+}
+
+.cta-simplified-buttons {
+  display: flex;
+  gap: 20px;
+}
+
+/* Specific Outline Button for this section */
+.btn-outline-pink {
+  border: 2px solid var(--dali-pink);
+  color: var(--dali-pink);
+  padding: 14px 40px;
+  border-radius: 30px;
+  text-decoration: none;
+  font-weight: 600;
+  transition: all 0.3s ease;
+  background: transparent;
+  display: inline-block;
+}
+
+.btn-outline-pink:hover {
+  background-color: var(--dali-pink);
+  color: white;
+}
+
+.cta-simplified-image {
+  flex: 1;
+  display: flex;
+  justify-content: flex-end;
+  z-index: 2;
+}
+
+.cta-simplified-image img {
+  width: 110%;
+  max-width: 500px;
+  position: inherit;
+  height: auto;
+  filter: drop-shadow(0 20px 40px rgba(0,0,0,0.1));
+  margin-top: -120px; 
+}
+
+/* Mobile Responsiveness for the new section */
+@media (max-width: 992px) {
+  .cta-simplified-container {
+    flex-direction: column;
+    padding: 40px;
+    text-align: center;
+    border-radius: 30px;
+  }
+
+  .cta-simplified-title {
+    font-size: 2.2rem;
+  }
+
+  .cta-simplified-description {
+    margin: 0 auto 30px;
+  }
+
+  .cta-simplified-buttons {
+    justify-content: center;
+  }
+
+  .cta-simplified-image {
+    justify-content: center;
+    margin-top: 30px;
+  }
+  
+  .cta-simplified-image img {
+    width: 100%;
+  }
+}
+
+/* --- Common Questions Section --- */
+.faq-section {
+  padding: 60px 0 100px;
+  background-color: #ffffff;
+}
+
+.faq-container {
+  max-width: 900px; /* Narrower than other sections for better readability */
+  margin: 0 auto;
+  padding: 0 20px;
+}
+
+.faq-main-title {
+  text-align: center;
+  font-size: 2.5rem;
+  color: #444;
+  font-weight: 700;
+  margin-bottom: 50px;
+}
+
+.faq-list {
+  margin-bottom: 60px;
+}
+
+.faq-item {
+  border-bottom: 1px solid #eee;
+}
+
+.faq-question {
+  width: 100%;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 25px 0;
+  background: none;
+  border: none;
+  text-align: left;
+  cursor: pointer;
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: #444;
+  transition: color 0.3s ease;
+}
+
+.faq-item.active .faq-question {
+  color: var(--dali-pink);
+}
+
+.faq-icon {
+  color: #666;
+  transition: transform 0.3s ease;
+}
+
+.faq-item.active .faq-icon {
+  color: var(--dali-pink);
+}
+
+.faq-answer {
+  max-height: 0;
+  overflow: hidden;
+  transition: max-height 0.4s cubic-bezier(0.4, 0, 0.2, 1), padding 0.3s ease;
+}
+
+.faq-item.active .faq-answer {
+  max-height: 200px; /* Adjust based on content */
+  padding-bottom: 25px;
+}
+
+.faq-answer p {
+  color: #666;
+  line-height: 1.6;
+  font-size: 1rem;
+  margin: 0;
+}
+
+/* --- Support Card --- */
+.faq-support-card {
+  background: var(--dali-pink);
+  border-radius: 25px;
+  padding: 40px 60px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  color: white; /* Base color */
+  box-shadow: 0 10px 30px rgba(177, 21, 118, 0.2);
+}
+
+.support-text h3 {
+  font-size: 2rem;
+  margin-bottom: 10px;
+  font-weight: 700;
+  color: #ffffff !important; /* Forces pure white */
+}
+
+.support-text p {
+  font-size: 1rem;
+  margin: 0;
+  color: #ffffff !important; /* Forces pure white */
+  opacity: 1; /* Ensures it is not faded */
+}
+
+.btn-white-pill {
+  background: white;
+  color: var(--dali-pink); /* This keeps the text inside the button pink */
+  padding: 12px 30px;
+  border-radius: 50px;
+  text-decoration: none;
+  font-weight: 700;
+  font-size: 0.95rem;
+  transition: transform 0.3s ease, background 0.3s ease;
+  white-space: nowrap;
+  display: inline-block;
+}
+
+.btn-white-pill:hover {
+  transform: scale(1.05);
+  background: #f9f9f9;
+}
+
+/* Mobile Responsiveness for FAQ */
+@media (max-width: 768px) {
+  .faq-support-card {
+    flex-direction: column;
+    text-align: center;
+    padding: 30px;
+    gap: 25px;
+  }
+  
+  .faq-question {
+    font-size: 1.1rem;
+  }
+  
+  .support-text h3 {
+    font-size: 1.5rem;
   }
 }

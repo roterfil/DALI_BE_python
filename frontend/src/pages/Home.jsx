@@ -1,7 +1,40 @@
+import React, { useState } from 'react'; 
 import { Link } from 'react-router-dom';
 import './Home.css'; 
 
 const Home = () => {
+
+
+  // State for Accordion
+  const [activeIndex, setActiveIndex] = useState(null);
+
+  const toggleAccordion = (index) => {
+    setActiveIndex(activeIndex === index ? null : index);
+  };
+
+  const faqData = [
+    {
+      question: "What is your policy on refunds?",
+      answer: "Your satisfaction is our priority. If you're not happy with an item, please contact our customer service team within 7 days of your delivery. For any damaged or incorrect items, we will gladly offer a full refund to your original payment method or a credit towards your next order. We may ask for a photo of the item to help us improve."
+    },
+    {
+      question: "How much do deliveries cost?",
+      answer: "Delivery fees vary based on your location and order size. You can see the exact delivery cost at the checkout page before finalizing your order."
+    },
+    {
+      question: "What are your delivery hours?",
+      answer: "We deliver from 8:00 AM to 8:00 PM daily, including weekends. You can choose a preferred delivery window during the checkout process."
+    },
+    {
+      question: "What about the prices?",
+      answer: "At DALI, we strive to keep our prices as low as possible without compromising quality. Our prices are competitive with local markets and often lower than traditional supermarkets."
+    },
+    {
+      question: "Do you serve my area?",
+      answer: "We currently serve major metropolitan areas. You can enter your zip code or address on our homepage to check if delivery is available in your specific location."
+    }
+  ];
+
   const scrollToWhyChooseUs = (e) => {
     e.preventDefault();
     const section = document.getElementById('why-choose-us');
@@ -210,6 +243,79 @@ const Home = () => {
     </div>
   </div>
 </section>
+
+{/* New Simplified Shopping Section */}
+<section className="cta-simplified-section">
+  <div className="container cta-simplified-container">
+    <div className="cta-simplified-content">
+      <h2 className="cta-simplified-title">
+        From Cart to Home, <br />
+        Your Simplified Shopping
+      </h2>
+      <p className="cta-simplified-description">
+        Experience the ultimate convenience DALI Online! Place your order now 
+        and enjoy fresh, high-quality products delivered right to your 
+        doorstep. Say goodbye to the hassle and hello to effortless 
+        grocery shopping, giving you more time for what matters most.
+      </p>
+      <div className="cta-simplified-buttons">
+        <Link to="/shop" className="btn-primary">
+          Shop now
+        </Link>
+        <Link to="/register" className="btn-outline-pink">
+          Join Us
+        </Link>
+      </div>
+    </div>
+    <div className="cta-simplified-image">
+      {/* Ensure you have this image in your public/images folder */}
+      <img src="/images/delivery.png" alt="Simplified Shopping" />
+    </div>
+  </div>
+</section>
+
+      {/* NEW COMMON QUESTIONS SECTION */}
+      <section className="faq-section">
+        <div className="container faq-container">
+          <h2 className="faq-main-title">Common Questions</h2>
+          
+          <div className="faq-list">
+            {faqData.map((item, index) => (
+              <div 
+                key={index} 
+                className={`faq-item ${activeIndex === index ? 'active' : ''}`}
+              >
+                <button className="faq-question" onClick={() => toggleAccordion(index)}>
+                  <span>Q. {item.question}</span>
+                  <span className="faq-icon">
+                    {activeIndex === index ? (
+                      <svg width="14" height="8" viewBox="0 0 14 8" fill="none"><path d="M1 7L7 1L13 7" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
+                    ) : (
+                      <svg width="14" height="8" viewBox="0 0 14 8" fill="none"><path d="M1 1L7 7L13 1" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
+                    )}
+                  </span>
+                </button>
+                <div className="faq-answer">
+                  <p>{item.answer}</p>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          {/* FAQ Support Box */}
+          <div className="faq-support-card">
+            <div className="support-text">
+              <h3>Still Have Questions?</h3>
+              <p>Can't find the answer you're looking for? Please chat to our friendly team.</p>
+            </div>
+            <a href="mailto:dalionline@gmail.com" className="btn-white-pill">Get in touch</a>
+          </div>
+        </div>
+      </section>
+
+
+
+
     </>
   );
 };
