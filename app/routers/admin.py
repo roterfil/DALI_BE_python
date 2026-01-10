@@ -16,6 +16,9 @@ from pydantic import BaseModel
 
 router = APIRouter(prefix="/api/admin", tags=["admin"])
 
+class UpdateDiscountRequest(BaseModel):
+    product_discount_price: Optional[float] = None
+    is_on_sale: bool
 
 class AdminLoginResponse(BaseModel):
     message: str
@@ -373,6 +376,44 @@ async def update_product(
 
     return {"message": "Product updated", "product_id": product_id, "changes": changes}
 
+@router.put("/products/{product_id}/discount")
+async def update_product_discount(
+    product_id: int,
+    discount_data: UpdateDiscountRequest,
+    db: Session = Depends(get_db),
+    admin = Depends(get_current_admin)
+):
+    """Update product discount price and sale status (super admin only)."""
+    # Require super admin
+    if not getattr(admin, 'is_super_admin', False):
+        raise HTTPException(status_code=403, detail="Super admin privileges required")
+    
+    product = db.query(Product).filter(Product.product_id == product_id).first()
+    if not product:
+        raise HTTPException(status_code=404, detail="Product not found")
+
+    # Update fields
+    product.product_discount_price = discount_data.product_discount_price
+    product.is_on_sale = discount_data.is_on_sale
+    
+    db.commit()
+
+    # Log the action in the Audit Log
+    try:
+        actor_email = getattr(admin, 'account_email', 'unknown')
+        audit = AuditLog(
+            actor_email=actor_email,
+            action='UPDATE_DISCOUNT',
+            entity_type='product',
+            entity_id=product_id,
+            details=f"Sale set to {product.is_on_sale} with price {product.product_discount_price}"
+        )
+        db.add(audit)
+        db.commit()
+    except Exception:
+        db.rollback()
+
+    return {"message": "Discount updated successfully"}
 
 @router.delete("/products/{product_id}")
 async def delete_product(

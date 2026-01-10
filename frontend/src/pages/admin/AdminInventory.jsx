@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { productService } from '../../services';
 import { useAuth } from '../../context/AuthContext';
+import EditDiscountModal from '../../components/EditDiscountModal';
 
 const AdminInventory = () => {
   const [searchParams, setSearchParams] = useSearchParams();
@@ -20,8 +21,17 @@ const AdminInventory = () => {
   const [stockFilter, setStockFilter] = useState(
     searchParams.get('stock') || ''
   );
+  const [saleFilter, setSaleFilter] = useState(
+    searchParams.get('sale') || ''
+  );
   const [successMessage, setSuccessMessage] = useState('');
   const [errorMessage, setErrorMessage] = useState('');
+  const [isDiscountModalOpen, setIsDiscountModalOpen] = useState(false);
+  const [selectedProductForDiscount, setSelectedProductForDiscount] = useState(null);
+  const handleManageDiscount = (product) => {
+  setSelectedProductForDiscount(product);
+  setIsDiscountModalOpen(true);
+};
 
   // Fetch categories on mount
   useEffect(() => {
@@ -77,6 +87,13 @@ const AdminInventory = () => {
         productList = productList.filter(p => p.product_quantity > 0 && p.product_quantity <= 10);
       }
       
+      // Apply sale status filter
+      if (saleFilter === 'on-sale') {
+        productList = productList.filter(p => p.is_on_sale && p.product_discount_price != null);
+      } else if (saleFilter === 'not-on-sale') {
+        productList = productList.filter(p => !p.is_on_sale || p.product_discount_price == null);
+      }
+      
       console.log('Product list:', productList);
       setProducts(productList);
       if (productList.length === 0) {
@@ -88,7 +105,7 @@ const AdminInventory = () => {
     } finally {
       setLoading(false);
     }
-  }, [query, selectedCategory, selectedSubcategory, stockFilter]);
+  }, [query, selectedCategory, selectedSubcategory, stockFilter, saleFilter]);
 
   useEffect(() => {
     const timeoutId = setTimeout(fetchProducts, 200);
@@ -106,8 +123,9 @@ const AdminInventory = () => {
     if (selectedCategory) params.set('category', selectedCategory);
     if (selectedSubcategory) params.set('subcategory', selectedSubcategory);
     if (stockFilter) params.set('stock', stockFilter);
+    if (saleFilter) params.set('sale', saleFilter);
     setSearchParams(params);
-  }, [query, selectedCategory, selectedSubcategory, stockFilter, setSearchParams]);
+  }, [query, selectedCategory, selectedSubcategory, stockFilter, saleFilter, setSearchParams]);
 
   // Handle category change - reset subcategory
   const handleCategoryChange = (category) => {
@@ -215,6 +233,35 @@ const AdminInventory = () => {
             </li>
           </ul>
         </div>
+
+        {/* Sale Status Filter */}
+        <div className="filter-group" style={{ marginTop: '20px' }}>
+          <h5>SALE STATUS</h5>
+          <ul>
+            <li>
+              <input
+                type="radio"
+                name="saleFilter"
+                value=""
+                id="sale-all"
+                checked={saleFilter === ''}
+                onChange={() => setSaleFilter('')}
+              />
+              <label htmlFor="sale-all">All</label>
+            </li>
+            <li>
+              <input
+                type="radio"
+                name="saleFilter"
+                value="on-sale"
+                id="sale-on"
+                checked={saleFilter === 'on-sale'}
+                onChange={() => setSaleFilter('on-sale')}
+              />
+              <label htmlFor="sale-on" style={{ color: '#a1127c' }}>On Sale</label>
+            </li>
+          </ul>
+        </div>
       </aside>
 
       {/* Main Content Area */}
@@ -249,6 +296,11 @@ const AdminInventory = () => {
                     to={`/admin/inventory/${product.product_id}`}
                   >
                     <div className="product-image-container">
+                      {product.is_on_sale && product.product_discount_price && (
+                        <div className="sale-badge">
+                          {Math.round(((product.product_price - product.product_discount_price) / product.product_price) * 100)}% OFF
+                        </div>
+                      )}
                       <img
                         src={`/images/products/${product.image}`}
                         alt={product.product_name}
@@ -257,11 +309,22 @@ const AdminInventory = () => {
                     <div className="product-card-info">
                       <p className="product-card-category">{product.product_category}</p>
                       <h3 className="product-card-name">{product.product_name}</h3>
-                      <p className="product-price">{formatPrice(product.product_price)}</p>
+                      {product.is_on_sale && product.product_discount_price ? (
+                        <div>
+                          <p className="product-price" style={{ textDecoration: 'line-through', color: '#999', fontSize: '0.9rem', margin: '0' }}>
+                            {formatPrice(product.product_price)}
+                          </p>
+                          <p className="product-price" style={{ color: '#a1127c', fontWeight: 'bold', margin: '4px 0 0 0' }}>
+                            {formatPrice(product.product_discount_price)}
+                          </p>
+                        </div>
+                      ) : (
+                        <p className="product-price">{formatPrice(product.product_price)}</p>
+                      )}
                     </div>
                   </Link>
-                  <div className="product-card-actions">
-                    <div className="product-stock-level" style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px' }}>
+                  <div className="product-card-actions" style={{ padding: '0 16px 16px 16px', width: '100%', boxSizing: 'border-box' }}>
+                    <div className="product-stock-level" style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '12px' }}>
                       <span>Stock: {product.product_quantity}</span>
                       {product.product_quantity === 0 && (
                         <span style={{
@@ -291,10 +354,35 @@ const AdminInventory = () => {
                     <Link
                       to={`/admin/inventory/${product.product_id}`}
                       className="btn btn-primary btn-small"
-                      style={{ width: '90%', textAlign: 'center', padding: '8px 15px', fontSize: '0.9rem' }}
+                      style={{ 
+                        width: '100%', 
+                        textAlign: 'center', 
+                        padding: '10px 16px', 
+                        fontSize: '0.9rem', 
+                        boxSizing: 'border-box',
+                        display: 'block',
+                        marginBottom: '8px'
+                      }}
                     >
                       Manage Product
                     </Link>
+                    <button 
+                      className="btn btn-secondary btn-small" 
+                      onClick={() => handleManageDiscount(product)}
+                      style={{ 
+                        width: '100%', 
+                        textAlign: 'center',
+                        padding: '10px 16px',
+                        fontSize: '0.9rem',
+                        backgroundColor: '#fef0f7', 
+                        color: '#a1127c', 
+                        border: '1px solid #a1127c',
+                        boxSizing: 'border-box',
+                        display: 'block'
+                      }}
+                    >
+                      Manage Sale
+                    </button>
                   </div>
                 </div>
               ))}
@@ -302,7 +390,17 @@ const AdminInventory = () => {
           )}
         </div>
       </main>
-      {/* Price edit modal is available on product detail page for super admins */}
+        {selectedProductForDiscount && (
+          <EditDiscountModal
+            product={selectedProductForDiscount}
+            open={isDiscountModalOpen}
+            onClose={() => {
+              setIsDiscountModalOpen(false);
+              setSelectedProductForDiscount(null);
+            }}
+            onSaved={fetchProducts} // Using your existing fetchProducts function to refresh the UI
+          />
+        )}
     </div>
   );
 };

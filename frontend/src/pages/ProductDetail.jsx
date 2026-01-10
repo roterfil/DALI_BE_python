@@ -84,11 +84,25 @@ const ProductDetail = () => {
 
   const isOutOfStock = product.product_quantity <= 0;
   const allInCart = maxAllowedToAdd <= 0;
+  const isSaleActive = product.is_on_sale && product.product_discount_price;
+
+  const calculateDiscountPercentage = () => {
+    if (!isSaleActive) return 0;
+    const originalPrice = parseFloat(product.product_price);
+    const discountPrice = parseFloat(product.product_discount_price);
+    const discount = ((originalPrice - discountPrice) / originalPrice) * 100;
+    return Math.round(discount);
+  };
 
   return (
     <main className="product-detail-container container">
       {/* Product Image */}
       <div className="product-detail-image">
+        {isSaleActive && (
+          <div className="sale-badge">
+            SALE {calculateDiscountPercentage()}% OFF
+          </div>
+        )}
         <img
           src={product.image ? `/images/products/${product.image}` : `/images/products/default.png`}
           alt={product.product_name}
@@ -98,7 +112,20 @@ const ProductDetail = () => {
       {/* Product Info */}
       <div className="product-detail-info">
         <h1>{product.product_name}</h1>
-        <p className="product-detail-price">{formatPrice(product.product_price)}</p>
+        <div className="price-container" style={{ marginBottom: '1.5rem', display: 'flex', alignItems: 'baseline', gap: '1rem' }}>
+          {isSaleActive ? (
+            <>
+              <span className="product-detail-price sale-price" style={{ fontSize: '2rem', color: '#a1127c', fontWeight: 'bold' }}>
+                {formatPrice(product.product_discount_price)}
+              </span>
+              <span className="original-price-strikethrough" style={{ fontSize: '1.25rem', color: '#999', textDecoration: 'line-through' }}>
+                {formatPrice(product.product_price)}
+              </span>
+            </>
+          ) : (
+            <p className="product-detail-price">{formatPrice(product.product_price)}</p>
+          )}
+        </div>
 
         {error && <div className="auth-error">{error}</div>}
 

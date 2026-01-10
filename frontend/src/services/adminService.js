@@ -35,6 +35,12 @@ const adminService = {
     return response.data;
   },
 
+  // Update product discount (super admin only)
+  updateDiscount: async (productId, discountData) => {
+    const response = await api.put(`/admin/products/${productId}/discount`, discountData);
+    return response.data;
+  },
+
   // Get all orders
   getOrders: async (search = '') => {
     const response = await api.get('/admin/orders', {

@@ -105,8 +105,12 @@ export const CartProvider = ({ children }) => {
           }
         }
 
-        // compute subtotal from available metadata
-        const subtotalCalc = (guest || []).reduce((s, it) => s + (Number(it.product_price || it.price || 0) * Number(it.quantity || 0)), 0);
+        // compute subtotal from available metadata - use discount price if item is on sale
+        const subtotalCalc = (guest || []).reduce((s, it) => {
+          const isOnSale = it.is_on_sale && it.product_discount_price;
+          const price = isOnSale ? Number(it.product_discount_price) : Number(it.product_price || it.price || 0);
+          return s + (price * Number(it.quantity || 0));
+        }, 0);
         setCartItems(guest || []);
         setSubtotal(subtotalCalc);
         setTotal(subtotalCalc);
@@ -118,10 +122,23 @@ export const CartProvider = ({ children }) => {
       }
     } catch (error) {
       console.error('Error fetching cart:', error);
-      // Reset cart on error
-      setCartItems([]);
-      setSubtotal(0);
-      setTotal(0);
+      // For guest cart errors, don't clear - just use what we have
+      if (!isAuthenticated) {
+        const guest = readGuestCart() || [];
+        setCartItems(guest);
+        const subtotalCalc = guest.reduce((s, it) => {
+          const isOnSale = it.is_on_sale && it.product_discount_price;
+          const price = isOnSale ? Number(it.product_discount_price) : Number(it.product_price || it.price || 0);
+          return s + (price * Number(it.quantity || 0));
+        }, 0);
+        setSubtotal(subtotalCalc);
+        setTotal(subtotalCalc);
+      } else {
+        // Only reset cart on authenticated user errors
+        setCartItems([]);
+        setSubtotal(0);
+        setTotal(0);
+      }
     } finally {
       setLoading(false);
     }
@@ -151,6 +168,8 @@ export const CartProvider = ({ children }) => {
               product_name: prod.product_name || prod.name || prod.title,
               image: prod.image || prod.product_image || prod.picture,
               product_price: prod.product_price || prod.price || prod.list_price,
+              product_discount_price: prod.product_discount_price || null,
+              is_on_sale: prod.is_on_sale || false
             };
           }
         } catch (e) {
@@ -159,7 +178,11 @@ export const CartProvider = ({ children }) => {
 
         writeGuestCart(guest);
         setCartItems(guest);
-        const subtotalCalc = guest.reduce((s, it) => s + (Number(it.product_price || it.price || 0) * Number(it.quantity || 0)), 0);
+        const subtotalCalc = guest.reduce((s, it) => {
+          const isOnSale = it.is_on_sale && it.product_discount_price;
+          const price = isOnSale ? Number(it.product_discount_price) : Number(it.product_price || it.price || 0);
+          return s + (price * Number(it.quantity || 0));
+        }, 0);
         setSubtotal(subtotalCalc);
         setTotal(subtotalCalc);
         return { success: true, guest: true };
@@ -191,7 +214,11 @@ export const CartProvider = ({ children }) => {
           guest[idx].quantity = quantity;
           writeGuestCart(guest);
           setCartItems(guest);
-          const subtotalCalc = guest.reduce((s, it) => s + (Number(it.product_price || it.price || 0) * Number(it.quantity || 0)), 0);
+          const subtotalCalc = guest.reduce((s, it) => {
+            const isOnSale = it.is_on_sale && it.product_discount_price;
+            const price = isOnSale ? Number(it.product_discount_price) : Number(it.product_price || it.price || 0);
+            return s + (price * Number(it.quantity || 0));
+          }, 0);
           setSubtotal(subtotalCalc);
           setTotal(subtotalCalc);
           return { success: true };
@@ -223,7 +250,11 @@ export const CartProvider = ({ children }) => {
         const updated = guest.filter(i => i.product_id !== productId);
         writeGuestCart(updated);
         setCartItems(updated);
-        const subtotalCalc = updated.reduce((s, it) => s + (Number(it.product_price || it.price || 0) * Number(it.quantity || 0)), 0);
+        const subtotalCalc = updated.reduce((s, it) => {
+          const isOnSale = it.is_on_sale && it.product_discount_price;
+          const price = isOnSale ? Number(it.product_discount_price) : Number(it.product_price || it.price || 0);
+          return s + (price * Number(it.quantity || 0));
+        }, 0);
         setSubtotal(subtotalCalc);
         setTotal(subtotalCalc);
         return { success: true };

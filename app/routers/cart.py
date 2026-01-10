@@ -3,7 +3,7 @@ Cart router - handles shopping cart operations (JSON API).
 """
 from fastapi import APIRouter, Request, Depends, HTTPException
 from sqlalchemy.orm import Session
-from typing import List
+from typing import List, Optional
 from app.core.database import get_db
 from app.core.security import get_current_user
 from app.services.cart_service import CartService
@@ -22,9 +22,11 @@ class CartItemResponse(BaseModel):
     product_id: int
     product_name: str
     product_price: float
+    product_discount_price: Optional[float] = None
+    is_on_sale: bool = False
     quantity: int
     subtotal: float
-    image: str = None
+    image: Optional[str] = None
     available_stock: int = 0
 
 
@@ -41,28 +43,54 @@ async def get_cart(
     current_user = Depends(get_current_user)
 ):
     """Get shopping cart."""
-    cart_items = CartService.get_cart_items(db, request, current_user)
-    subtotal = CartService.get_cart_total(cart_items)
-    
-    items = []
-    for item in cart_items:
-        product = item["product"]
-        quantity = item["quantity"]
-        items.append(CartItemResponse(
-            product_id=product.product_id,
-            product_name=product.product_name,
-            product_price=float(product.product_price),
-            quantity=quantity,
-            subtotal=float(product.product_price) * quantity,
-            image=product.image,
-            available_stock=product.product_quantity
-        ))
-    
-    return CartResponse(
-        items=items,
-        subtotal=subtotal,
-        total=subtotal  # Will add shipping in checkout
-    )
+    try:
+        cart_items = CartService.get_cart_items(db, request, current_user)
+        subtotal = CartService.get_cart_total(cart_items)
+        
+        items = []
+        for item in cart_items:
+            product = item["product"]
+            quantity = item["quantity"]
+            
+            # Safely get attributes with defaults
+            try:
+                is_on_sale = product.is_on_sale if product.is_on_sale is not None else False
+            except AttributeError:
+                is_on_sale = False
+            
+            try:
+                discount_price = product.product_discount_price
+            except AttributeError:
+                discount_price = None
+            
+            # Use discount price if sale is active
+            if is_on_sale and discount_price is not None:
+                price_to_use = float(discount_price)
+            else:
+                price_to_use = float(product.product_price)
+            
+            items.append(CartItemResponse(
+                product_id=product.product_id,
+                product_name=product.product_name,
+                product_price=float(product.product_price),
+                product_discount_price=float(discount_price) if discount_price is not None else None,
+                is_on_sale=is_on_sale,
+                quantity=quantity,
+                subtotal=price_to_use * quantity,
+                image=product.image if hasattr(product, 'image') else None,
+                available_stock=product.product_quantity
+            ))
+        
+        return CartResponse(
+            items=items,
+            subtotal=subtotal,
+            total=subtotal
+        )
+    except Exception as e:
+        print(f"Cart error: {str(e)}")
+        import traceback
+        traceback.print_exc()
+        raise HTTPException(status_code=500, detail=f"Error loading cart: {str(e)}")
 
 
 @router.post("/items")

@@ -7,6 +7,7 @@ import AdminRoute from './components/AdminRoute'
 // Public Pages
 import Home from './pages/Home'
 import Shop from './pages/Shop'
+import SalePage from './pages/SalePage'
 import ProductDetail from './pages/ProductDetail'
 import Cart from './pages/Cart'
 import Stores from './pages/Stores'
@@ -41,6 +42,7 @@ function App() {
       <Route element={<Layout />}>
         <Route path="/" element={<Home />} />
         <Route path="/shop" element={<Shop />} />
+        <Route path="/sale" element={<SalePage />} />
         <Route path="/product/:id" element={<ProductDetail />} />
         <Route path="/cart" element={<Cart />} />
         <Route path="/stores" element={<Stores />} />

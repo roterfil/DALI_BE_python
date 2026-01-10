@@ -12,7 +12,18 @@ const ProductCard = ({ product, availableToAdd = null }) => {
   const [loading, setLoading] = useState(false);
   const [isModalOpen, setIsModalOpen] = useState(false);
 
+  const isSaleActive = product.is_on_sale && product.product_discount_price;
+
+  const calculateDiscountPercentage = () => {
+    if (!isSaleActive) return 0;
+    const originalPrice = parseFloat(product.product_price);
+    const discountPrice = parseFloat(product.product_discount_price);
+    const discount = ((originalPrice - discountPrice) / originalPrice) * 100;
+    return Math.round(discount);
+  };
+
   const formatPrice = (price) => {
+    const numericPrice = Number(price);
     return `₱${price.toLocaleString('en-PH', {
       minimumFractionDigits: 2,
       maximumFractionDigits: 2,
@@ -40,6 +51,11 @@ const ProductCard = ({ product, availableToAdd = null }) => {
 
   return (
     <div className="product-card">
+      {isSaleActive && (
+        <div className="sale-badge">
+          SALE {calculateDiscountPercentage()}% OFF
+        </div>
+      )}
       <Link className="product-card-body" to={`/product/${product.product_id}`}>
         <div className="product-image-container">
           <img
@@ -50,7 +66,20 @@ const ProductCard = ({ product, availableToAdd = null }) => {
         <div className="product-card-info">
           <p className="product-card-category">{product.product_category}</p>
           <h3 className="product-card-name">{product.product_name}</h3>
-          <p className="product-price">{formatPrice(product.product_price)}</p>
+          <div className="price-container">
+            {isSaleActive ? (
+              <>
+                <span className="product-price sale-price">
+                  {formatPrice(product.product_discount_price)}
+                </span>
+                <span className="original-price-strikethrough">
+                  {formatPrice(product.product_price)}
+                </span>
+              </>
+            ) : (
+              <span className="product-price">{formatPrice(product.product_price)}</span>
+            )}
+          </div>
         </div>
       </Link>
       <div className="product-card-actions">

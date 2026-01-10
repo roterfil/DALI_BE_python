@@ -95,7 +95,11 @@ class Product(Base):
     product_name = Column(String(255), nullable=False)
     product_description = Column(Text)
     product_price = Column(Numeric(10, 2), nullable=False)
+    # Discount
+    product_discount_price = Column(Numeric(10, 2), nullable=True)
+    is_on_sale = Column(Boolean, default=False)
     product_category = Column(String(255))
+    # ------    
     product_subcategory = Column(String(255))
     product_quantity = Column(Integer, nullable=False)
     image = Column(String(255))

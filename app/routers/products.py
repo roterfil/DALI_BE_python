@@ -30,12 +30,25 @@ async def list_products(
     elif category:
         query = query.filter(Product.product_category == category)
     
-    products = query.all()
+    # Order by product_id to maintain consistent order
+    products = query.order_by(Product.product_id).all()
     
     # Apply search filter
     if search:
         products = [p for p in products if search.lower() in p.product_name.lower()]
     
+    return products
+
+
+@router.get("/sale", response_model=List[ProductResponse])
+async def list_sale_products(
+    db: Session = Depends(get_db)
+):
+    """Get all products currently on sale."""
+    products = db.query(Product).filter(
+        Product.is_on_sale == True,
+        Product.product_discount_price.isnot(None)
+    ).all()
     return products
 
 

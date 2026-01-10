@@ -65,11 +65,20 @@ class CartService:
     
     @staticmethod
     def get_cart_total(cart_items: List[Dict]) -> float:
-        """Calculate total price of cart items."""
-        return sum(
-            float(item["product"].product_price) * item["quantity"]
-            for item in cart_items
-        )
+        """Calculate total price of cart items, respecting active discounts."""
+        total = 0.0
+        for item in cart_items:
+            product = item["product"]
+            quantity = item["quantity"]
+            
+            # Use discount price if sale is active and price is set
+            if product.is_on_sale and product.product_discount_price is not None:
+                price = float(product.product_discount_price)
+            else:
+                price = float(product.product_price)
+                
+            total += price * quantity
+        return total
     
     @staticmethod
     def add_to_cart(

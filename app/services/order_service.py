@@ -42,7 +42,19 @@ class OrderService:
             raise ValueError("Invalid address")
         
         # Calculate total
-        subtotal = CartService.get_cart_total(cart_items)
+        subtotal = 0.0
+        for item in cart_items:
+            product = item["product"]
+            qty = item["quantity"]
+            
+            # Logic: Determine the applicable price
+            if product.is_on_sale and product.product_discount_price is not None:
+                current_price = float(product.product_discount_price)
+            else:
+                current_price = float(product.product_price)
+            
+            subtotal += current_price * qty
+
         shipping_fee = checkout_details.get("shippingFee", 0.0)
         total = subtotal + shipping_fee
         

@@ -83,6 +83,10 @@ class ProductBase(BaseModel):
     product_name: str
     product_description: Optional[str] = None
     product_price: Decimal
+    # Discount
+    product_discount_price: Optional[Decimal] = None
+    is_on_sale: bool = False
+    # ---------------------------
     product_category: Optional[str] = None
     product_subcategory: Optional[str] = None
     product_quantity: int

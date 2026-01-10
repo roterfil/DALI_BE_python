@@ -23,6 +23,7 @@ export const authAPI = {
 // Products API
 export const productsAPI = {
   getProducts: (params) => api.get('/products', { params }),
+  getSaleProducts: () => api.get('/products/sale'),
   getCategories: () => api.get('/products/categories'),
   getSubcategories: (category) => api.get(`/products/categories/${category}/subcategories`),
   getProduct: (id) => api.get(`/products/${id}`),
@@ -84,6 +85,7 @@ export const adminAPI = {
   getProduct: (id) => api.get(`/admin/products/${id}`),
   addProduct: (data) => api.post('/admin/products', data),
   updateStock: (id, quantity) => api.put(`/admin/products/${id}/stock`, { quantity }),
+  updateDiscount: (id, data) => api.put(`/admin/products/${id}/discount`, data),
   getOrders: (search) => api.get('/admin/orders', { params: { search } }),
   getOrder: (id) => api.get(`/admin/orders/${id}`),
   updateOrderStatus: (id, status) => api.put(`/admin/orders/${id}/status`, { status }),

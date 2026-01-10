@@ -78,6 +78,20 @@
   color: #a1127c;
 }
 
+.sale-link {
+  background: linear-gradient(135deg, #a1127c 0%, #d91a5b 100%);
+  color: white !important;
+  padding: 0.5rem 1rem;
+  border-radius: 6px;
+  transition: all 0.3s ease;
+}
+
+.sale-link:hover {
+  color: white !important;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(161, 18, 124, 0.3);
+}
+
 .navbar-search {
   flex: 1;
   max-width: 300px;

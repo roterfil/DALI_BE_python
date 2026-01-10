@@ -4,6 +4,7 @@ import { productService } from '../../services';
 import adminService from '../../services/adminService';
 import { useAuth } from '../../context/AuthContext';
 import EditPriceModal from '../../components/EditPriceModal';
+import EditDiscountModal from '../../components/EditDiscountModal';
 
 const AdminProductDetail = () => {
   const { id } = useParams();
@@ -15,6 +16,7 @@ const AdminProductDetail = () => {
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const [isPriceModalOpen, setIsPriceModalOpen] = useState(false);
+  const [isDiscountModalOpen, setIsDiscountModalOpen] = useState(false);
 
   const { isSuperAdmin } = useAuth();
   const [isEditOpen, setIsEditOpen] = useState(false);
@@ -157,7 +159,44 @@ const AdminProductDetail = () => {
         </Link>
 
         <h1>{product.product_name}</h1>
-        <p className="product-detail-price">{formatPrice(product.product_price)}</p>
+        <div style={{ marginBottom: '20px' }}>
+          {product.is_on_sale && product.product_discount_price ? (
+            <>
+              <p className="product-detail-price" style={{ 
+                marginBottom: '4px', 
+                textDecoration: 'line-through',
+                color: '#999',
+                fontSize: '1.2rem'
+              }}>
+                {formatPrice(product.product_price)}
+              </p>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                <p className="product-detail-price" style={{ 
+                  margin: 0,
+                  color: '#a1127c',
+                  fontWeight: 'bold',
+                  fontSize: '1.8rem'
+                }}>
+                  {formatPrice(product.product_discount_price)}
+                </p>
+                <span style={{
+                  padding: '6px 12px',
+                  background: 'linear-gradient(135deg, #a1127c 0%, #d91a5b 100%)',
+                  color: 'white',
+                  borderRadius: '6px',
+                  fontSize: '0.9rem',
+                  fontWeight: '600'
+                }}>
+                  {Math.round(((product.product_price - product.product_discount_price) / product.product_price) * 100)}% OFF
+                </span>
+              </div>
+            </>
+          ) : (
+            <p className="product-detail-price" style={{ marginBottom: '8px' }}>
+              {formatPrice(product.product_price)}
+            </p>
+          )}
+        </div>
 
         {success && <div className="auth-success">{success}</div>}
         {error && <div className="auth-error">{error}</div>}
@@ -193,13 +232,20 @@ const AdminProductDetail = () => {
             </div>
           </form>
           {isSuperAdmin && (
-            <div style={{ marginTop: '12px', display: 'flex', gap: '8px' }}>
+            <div style={{ marginTop: '12px', display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
               <button
                 className="btn btn-primary"
                 onClick={() => setIsPriceModalOpen(true)}
                 style={{ padding: '8px 12px' }}
               >
                 Edit Price
+              </button>
+              <button
+                className="btn"
+                onClick={() => setIsDiscountModalOpen(true)}
+                style={{ padding: '8px 12px', background: '#a1127c', color: 'white' }}
+              >
+                Edit Discount
               </button>
               <button
                 className="btn btn-secondary"
@@ -257,6 +303,24 @@ const AdminProductDetail = () => {
             setProduct(prev => ({ ...prev, product_price: Number(newPrice) }));
             setIsPriceModalOpen(false);
             setSuccess('Price updated successfully!');
+            setTimeout(() => setSuccess(''), 3000);
+          }}
+        />
+      )}
+
+      {isDiscountModalOpen && (
+        <EditDiscountModal
+          product={product}
+          open={isDiscountModalOpen}
+          onClose={() => setIsDiscountModalOpen(false)}
+          onSaved={(discountData) => {
+            setProduct(prev => ({
+              ...prev,
+              product_discount_price: discountData.product_discount_price,
+              is_on_sale: discountData.is_on_sale
+            }));
+            setIsDiscountModalOpen(false);
+            setSuccess('Discount updated successfully!');
             setTimeout(() => setSuccess(''), 3000);
           }}
         />
@@ -328,6 +392,40 @@ const AdminProductDetail = () => {
             </div>
           </div>
         </div>
+      )}
+
+      {/* Price Modal */}
+      {isPriceModalOpen && (
+        <EditPriceModal
+          product={product}
+          open={isPriceModalOpen}
+          onClose={() => setIsPriceModalOpen(false)}
+          onSaved={(newPrice) => {
+            setProduct(prev => ({ ...prev, product_price: Number(newPrice) }));
+            setIsPriceModalOpen(false);
+            setSuccess('Price updated successfully!');
+            setTimeout(() => setSuccess(''), 3000);
+          }}
+        />
+      )}
+
+      {/* Discount Modal */}
+      {isDiscountModalOpen && (
+        <EditDiscountModal
+          product={product}
+          open={isDiscountModalOpen}
+          onClose={() => setIsDiscountModalOpen(false)}
+          onSaved={(discountData) => {
+            setProduct(prev => ({
+              ...prev,
+              product_discount_price: discountData.product_discount_price,
+              is_on_sale: discountData.is_on_sale
+            }));
+            setIsDiscountModalOpen(false);
+            setSuccess('Discount updated successfully!');
+            setTimeout(() => setSuccess(''), 3000);
+          }}
+        />
       )}
     </main>
   );

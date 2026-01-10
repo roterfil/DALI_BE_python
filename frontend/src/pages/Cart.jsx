@@ -59,52 +59,69 @@ const Cart = () => {
               <div className="header-action"></div>
             </div>
 
-            {cartItems.map((item) => (
-              <div key={item.product_id} className="cart-item-row">
-                <div className="cart-product-info">
-                  <img
-                    src={item.image ? `/images/products/${item.image}` : `/images/products/default.png`}
-                    alt={item.product_name}
-                  />
-                  <div>
-                    <p className="product-name">{item.product_name}</p>
-                    <p className="product-price">{item.product_price ? formatPrice(item.product_price) : '—'}</p>
+            {cartItems.map((item) => {
+              const isSaleActive = item.is_on_sale && item.product_discount_price;
+              const currentPrice = isSaleActive ? item.product_discount_price : item.product_price;
+
+              return (
+                <div key={item.product_id} className="cart-item-row">
+                  <div className="cart-product-info">
+                    <img
+                      src={item.image ? `/images/products/${item.image}` : `/images/products/default.png`}
+                      alt={item.product_name}
+                    />
+                    <div>
+                      <p className="product-name">{item.product_name}</p>
+                      
+                      <div className="cart-item-price-display">
+                        {isSaleActive ? (
+                          <>
+                            <span className="product-price sale-price">{formatPrice(currentPrice)}</span>
+                            <span className="original-price-strikethrough small">{formatPrice(item.product_price)}</span>
+                            <span className="cart-sale-tag">Sale</span>
+                          </>
+                        ) : (
+                          <p className="product-price">{formatPrice(item.product_price)}</p>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="cart-quantity-selector">
+                    <input
+                      type="number"
+                      name="quantity"
+                      value={item.quantity}
+                      min="1"
+                      onChange={(e) =>
+                        handleQuantityChange(item.product_id, parseInt(e.target.value) || 1)
+                      }
+                    />
+                  </div>
+
+                  <div className="cart-item-total">
+                    {formatPrice(item.subtotal)}
+                  </div>
+
+                  <div className="cart-item-remove">
+                    <button
+                      type="button"
+                      className="remove-btn"
+                      onClick={() => handleRemove(item.product_id)}
+                    >
+                      ×
+                    </button>
                   </div>
                 </div>
-
-                <div className="cart-quantity-selector">
-                  <input
-                    type="number"
-                    name="quantity"
-                    value={item.quantity}
-                    min="1"
-                    onChange={(e) =>
-                      handleQuantityChange(item.product_id, parseInt(e.target.value) || 1)
-                    }
-                  />
-                </div>
-
-                <div className="cart-item-total">
-                  {formatPrice(item.subtotal ?? (Number(item.product_price || 0) * Number(item.quantity || 0)))}
-                </div>
-
-                <div className="cart-item-remove">
-                  <button
-                    type="button"
-                    className="remove-btn"
-                    onClick={() => handleRemove(item.product_id)}
-                  >
-                    ×
-                  </button>
-                </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
 
           <div className="cart-summary-panel">
             <h2>Order Summary</h2>
             <div className="summary-row">
               <span>Subtotal</span>
+              {/* This correctly uses the pre-calculated subtotal from your CartContext */}
               <span>{formatPrice(subtotal)}</span>
             </div>
             <div className="summary-row">
