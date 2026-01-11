@@ -120,39 +120,6 @@ npm run dev
 
 Frontend runs at: `http://localhost:5173`
 
----
-
-## 🔧 Environment Variables
-
-Create a `.env` file in the root directory:
-
-```env
-# Database
-DATABASE_URL=postgresql://postgres:password@localhost:5432/dali_db
-
-# Security
-SECRET_KEY=your-secret-key-here
-
-# Email (Gmail SMTP)
-SMTP_HOST=smtp.gmail.com
-SMTP_PORT=587
-SMTP_USER=your-email@gmail.com
-SMTP_PASSWORD=your-app-password
-EMAIL_FROM=your-email@gmail.com
-
-# Maya Payment (Sandbox)
-MAYA_API_KEY=your-api-key
-MAYA_SECRET_KEY=your-secret-key
-MAYA_PUBLIC_KEY=your-public-key
-MAYA_BASE_URL=https://pg-sandbox.paymaya.com
-
-# Shipping
-WAREHOUSE_LAT=14.5995
-WAREHOUSE_LON=120.9842
-
-# Frontend URL (for CORS and redirects)
-FRONTEND_URL=http://localhost:5173
-```
 
 ---
 
