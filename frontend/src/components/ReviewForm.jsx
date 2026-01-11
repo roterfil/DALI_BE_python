@@ -1,18 +1,29 @@
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import PropTypes from 'prop-types';
 import StarRating from './StarRating';
 import { reviewService } from '../services';
 import './ReviewForm.css';
 
-const ReviewForm = ({ orderItem, onReviewSubmitted, onCancel }) => {
-  const [rating, setRating] = useState(0);
-  const [comment, setComment] = useState('');
-  const [isAnonymous, setIsAnonymous] = useState(false);
+const ReviewForm = ({ orderItem, existingReview, onReviewSubmitted, onCancel }) => {
+  const [rating, setRating] = useState(existingReview?.rating || 0);
+  const [comment, setComment] = useState(existingReview?.comment || '');
+  const [isAnonymous, setIsAnonymous] = useState(existingReview?.is_anonymous || false);
   const [images, setImages] = useState([]);
   const [imagePreviews, setImagePreviews] = useState([]);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
   const fileInputRef = useRef(null);
+  
+  const isEditMode = !!existingReview;
+
+  // Initialize with existing review data
+  useEffect(() => {
+    if (existingReview) {
+      setRating(existingReview.rating);
+      setComment(existingReview.comment || '');
+      setIsAnonymous(existingReview.is_anonymous);
+    }
+  }, [existingReview]);
 
   const handleImageSelect = (e) => {
     const files = Array.from(e.target.files);
@@ -57,23 +68,34 @@ const ReviewForm = ({ orderItem, onReviewSubmitted, onCancel }) => {
     setSubmitting(true);
 
     try {
-      // Create review
-      const reviewData = {
-        order_item_id: orderItem.order_item_id,
-        rating,
-        comment: comment.trim() || null,
-        is_anonymous: isAnonymous,
-      };
+      let review;
+      
+      if (isEditMode) {
+        // Update existing review
+        const reviewData = {
+          rating,
+          comment: comment.trim() || null,
+          is_anonymous: isAnonymous,
+        };
+        review = await reviewService.updateReview(existingReview.review_id, reviewData);
+      } else {
+        // Create new review
+        const reviewData = {
+          order_item_id: orderItem.order_item_id,
+          rating,
+          comment: comment.trim() || null,
+          is_anonymous: isAnonymous,
+        };
+        review = await reviewService.createReview(reviewData);
 
-      const review = await reviewService.createReview(reviewData);
-
-      // Upload images if any
-      if (images.length > 0) {
-        for (const file of images) {
-          try {
-            await reviewService.uploadReviewImage(review.review_id, file);
-          } catch (imgErr) {
-            console.error('Error uploading image:', imgErr);
+        // Upload images if any (only for new reviews)
+        if (images.length > 0) {
+          for (const file of images) {
+            try {
+              await reviewService.uploadReviewImage(review.review_id, file);
+            } catch (imgErr) {
+              console.error('Error uploading image:', imgErr);
+            }
           }
         }
       }
@@ -178,6 +200,13 @@ const ReviewForm = ({ orderItem, onReviewSubmitted, onCancel }) => {
 
         {error && <div className="review-form__error">{error}</div>}
 
+        {/* Edit mode notice */}
+        {isEditMode && (
+          <div className="review-form__notice">
+            ⚠️ You can only edit your review once. Make sure you're happy with your changes.
+          </div>
+        )}
+
         {/* Actions */}
         <div className="review-form__actions">
           <button
@@ -193,7 +222,7 @@ const ReviewForm = ({ orderItem, onReviewSubmitted, onCancel }) => {
             className="btn btn-primary"
             disabled={submitting || rating === 0}
           >
-            {submitting ? 'Submitting...' : 'Submit Review'}
+            {submitting ? 'Submitting...' : (isEditMode ? 'Update Review' : 'Submit Review')}
           </button>
         </div>
       </form>
@@ -209,6 +238,12 @@ ReviewForm.propTypes = {
     product_image: PropTypes.string,
     quantity: PropTypes.number.isRequired,
   }).isRequired,
+  existingReview: PropTypes.shape({
+    review_id: PropTypes.number.isRequired,
+    rating: PropTypes.number.isRequired,
+    comment: PropTypes.string,
+    is_anonymous: PropTypes.bool,
+  }),
   onReviewSubmitted: PropTypes.func.isRequired,
   onCancel: PropTypes.func.isRequired,
 };

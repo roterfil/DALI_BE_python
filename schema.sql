@@ -141,6 +141,7 @@ CREATE TABLE reviews (
                          rating          INTEGER NOT NULL CHECK (rating >= 1 AND rating <= 5),
                          comment         TEXT,
                          is_anonymous    BOOLEAN DEFAULT FALSE,
+                         is_edited       BOOLEAN DEFAULT FALSE,
                          created_at      TIMESTAMP WITHOUT TIME ZONE DEFAULT CURRENT_TIMESTAMP,
                          updated_at      TIMESTAMP WITHOUT TIME ZONE DEFAULT CURRENT_TIMESTAMP,
                          UNIQUE(order_item_id)

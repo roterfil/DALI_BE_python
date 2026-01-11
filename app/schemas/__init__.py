@@ -342,6 +342,7 @@ class ReviewResponse(BaseModel):
     rating: int
     comment: Optional[str] = None
     is_anonymous: bool
+    is_edited: bool = False
     created_at: datetime
     updated_at: datetime
     reviewer_name: Optional[str] = None

@@ -51,6 +51,7 @@ def review_to_response(review: Review) -> dict:
         "rating": review.rating,
         "comment": review.comment,
         "is_anonymous": review.is_anonymous,
+        "is_edited": review.is_edited,
         "created_at": review.created_at,
         "updated_at": review.updated_at,
         "reviewer_name": get_reviewer_name(review),
@@ -267,7 +268,7 @@ async def update_review(
     db: Session = Depends(get_db),
     current_user: Account = Depends(get_current_user_required)
 ):
-    """Update an existing review."""
+    """Update an existing review (one-time edit only)."""
     review = db.query(Review).filter(Review.review_id == review_id).first()
     
     if not review:
@@ -276,6 +277,10 @@ async def update_review(
     if review.account_id != current_user.account_id:
         raise HTTPException(status_code=403, detail="Access denied")
     
+    # Check if already edited (one-time edit only)
+    if review.is_edited:
+        raise HTTPException(status_code=400, detail="Review can only be edited once")
+    
     # Update fields
     if review_data.rating is not None:
         review.rating = review_data.rating
@@ -283,6 +288,9 @@ async def update_review(
         review.comment = review_data.comment
     if review_data.is_anonymous is not None:
         review.is_anonymous = review_data.is_anonymous
+    
+    # Mark as edited
+    review.is_edited = True
     
     db.commit()
     db.refresh(review)

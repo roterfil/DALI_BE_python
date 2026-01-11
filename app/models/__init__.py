@@ -324,6 +324,7 @@ class Review(Base):
     rating = Column(Integer, nullable=False)
     comment = Column(Text)
     is_anonymous = Column(Boolean, default=False)
+    is_edited = Column(Boolean, default=False)
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     

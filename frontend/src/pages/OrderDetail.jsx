@@ -275,9 +275,26 @@ const OrderDetail = () => {
                       {loadingReviews ? (
                         <span className="loading-text">Loading...</span>
                       ) : reviewStatus?.isReviewed ? (
-                        <div className="reviewed-badge">
-                          <StarRating rating={reviewStatus.review.rating} size="small" />
-                          <span>Reviewed</span>
+                        <div className="reviewed-status">
+                          <div className="reviewed-badge">
+                            <StarRating rating={reviewStatus.review.rating} size="small" />
+                            <span>Reviewed{reviewStatus.review.is_edited ? ' (Edited)' : ''}</span>
+                          </div>
+                          {!reviewStatus.review.is_edited && (
+                            <button
+                              className="btn btn-sm btn-outline edit-review-btn"
+                              onClick={() => setReviewingItem({
+                                order_item_id: item.order_item_id,
+                                product_id: item.product.product_id,
+                                product_name: item.product.product_name,
+                                product_image: item.product.image,
+                                quantity: item.quantity,
+                                existingReview: reviewStatus.review,
+                              })}
+                            >
+                              Edit
+                            </button>
+                          )}
                         </div>
                       ) : (
                         <button
@@ -303,9 +320,10 @@ const OrderDetail = () => {
           {/* Review Form Modal */}
           {reviewingItem && (
             <div className="review-form-section">
-              <h3>Write a Review</h3>
+              <h3>{reviewingItem.existingReview ? 'Edit Review' : 'Write a Review'}</h3>
               <ReviewForm
                 orderItem={reviewingItem}
+                existingReview={reviewingItem.existingReview}
                 onReviewSubmitted={handleReviewSubmitted}
                 onCancel={() => setReviewingItem(null)}
               />
