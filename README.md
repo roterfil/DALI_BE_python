@@ -1,164 +1,248 @@
-# DALI E-Commerce Backend (FastAPI)
+# DALI E-Commerce Platform
 
-## Overview
-DALI is a full-featured e-commerce backend built with FastAPI, SQLAlchemy, and PostgreSQL. It supports user registration, authentication, product browsing, cart management, checkout, order processing, address management, admin operations, and payment integration (Maya sandbox).
-
----
-
-## Features
-- RESTful JSON API for all operations
-- Session-based authentication (secure cookies)
-- Password hashing (bcrypt)
-- CORS enabled for React frontend
-- Comprehensive Postman test scenarios
-- Email notifications (password reset, order confirmation)
-- Shipping fee calculation based on geodesic distance
-- Admin dashboard and inventory management
-- Payment gateway integration (Maya sandbox, COD)
+A full-stack e-commerce application built with **FastAPI** (backend) and **React + Vite** (frontend).
 
 ---
 
-## Project Structure
+## 🚀 Features
+
+### Customer Features
+- **User Authentication** - Registration, login, email verification, password reset
+- **Profile Management** - Update profile info, upload profile picture
+- **Product Browsing** - Browse by category, search products, view details
+- **Shopping Cart** - Add/remove items, update quantities
+- **Checkout** - Standard delivery or Click & Collect (pickup)
+- **Payment Integration** - Maya (PayMaya) sandbox and Cash on Delivery
+- **Order Tracking** - View order status, history timeline
+- **Product Reviews** - Star ratings (1-5), comments, images, anonymous option
+- **One-Time Review Edit** - Edit your review once after posting
+- **Address Management** - Multiple addresses with Philippine location hierarchy
+
+### Admin Features
+- **Dashboard** - Order stats, revenue, low stock alerts
+- **Order Management** - View all orders, update status
+- **Inventory Management** - Update stock quantities and prices
+
+---
+
+## 🛠️ Tech Stack
+
+| Layer | Technology |
+|-------|------------|
+| Backend | FastAPI, SQLAlchemy, PostgreSQL |
+| Frontend | React 18, Vite, Axios |
+| Authentication | Session-based (secure cookies), bcrypt |
+| Payment | Maya (PayMaya) Sandbox |
+| Email | SMTP (Gmail compatible) |
+
+---
+
+## 📁 Project Structure
+
 ```
 DALI_BE_Python/
 ├── app/
 │   ├── core/           # Config, database, security
 │   ├── models/         # SQLAlchemy models
-│   ├── routers/        # API endpoints
-│   ├── schemas/        # Pydantic schemas
-│   ├── services/       # Business logic
+│   ├── routers/        # API endpoints (auth, products, cart, orders, reviews, admin, etc.)
+│   ├── schemas/        # Pydantic request/response schemas
+│   ├── services/       # Business logic (email, shipping, Maya, etc.)
 │   └── utils/          # Utility functions
-├── main.py             # FastAPI app entrypoint
-├── requirements.txt    # Python dependencies
-├── .env                # Environment variables
-├── README.md           # Project documentation
-├── QUICKSTART.md       # Setup guide
-├── POSTMAN_TEST_SCENARIOS.md # API test cases
+├── frontend/           # React + Vite frontend
+│   ├── src/
+│   │   ├── components/ # Reusable UI components
+│   │   ├── pages/      # Page components
+│   │   ├── context/    # React contexts (Auth, Cart)
+│   │   ├── services/   # API service modules
+│   │   └── styles/     # CSS files
+│   └── public/         # Static assets
+├── main.py             # FastAPI entrypoint
 ├── schema.sql          # Database schema
-└── data.sql            # Sample data
+├── data.sql            # Sample data
+├── requirements.txt    # Python dependencies
+├── DOCUMENTATION.md    # Complete API & schema documentation
+└── README.md           # This file
 ```
 
 ---
 
-## Database Schema Visual
+## ⚡ Quick Start
 
-Below is a simplified entity-relationship diagram (ERD) for the DALI E-Commerce database:
+### Prerequisites
+- Python 3.10+
+- Node.js 18+
+- PostgreSQL 14+
 
-```mermaid
-erDiagram
-    ACCOUNTS ||--o{ ADDRESSES : has
-    ACCOUNTS ||--o{ CART_ITEMS : has
-    ACCOUNTS ||--o{ ORDERS : places
-    ACCOUNTS ||--o{ ORDER_HISTORY : logs
-    ACCOUNTS ||--o{ ADMIN_ACCOUNTS : admin
-    ADDRESSES ||--|> PROVINCES : located_in
-    ADDRESSES ||--|> CITIES : located_in
-    ADDRESSES ||--|> BARANGAYS : located_in
-    CART_ITEMS ||--|> PRODUCTS : contains
-    ORDERS ||--o{ ORDER_ITEMS : includes
-    ORDERS ||--o{ ORDER_PICKUPS : pickup
-    ORDERS ||--o{ ORDER_HISTORY : history
-    ORDERS ||--|> ADDRESSES : ships_to
-    ORDER_ITEMS ||--|> PRODUCTS : product
-    ORDER_PICKUPS ||--|> STORES : store
-    CITIES ||--o{ PROVINCES : belongs_to
-    BARANGAYS ||--o{ CITIES : belongs_to
+### 1. Database Setup
+
+```bash
+# Create database
+psql -U postgres -c "CREATE DATABASE dali_db"
+
+# Run schema
+psql -U postgres -d dali_db -f schema.sql
+
+# (Optional) Load sample data
+psql -U postgres -d dali_db -f data.sql
 ```
 
-- **ACCOUNTS**: Users, linked to addresses, cart items, orders, and admin accounts
-- **ADDRESSES**: Linked to provinces, cities, barangays
-- **ORDERS**: Linked to accounts, addresses, order items, pickups, history
-- **ORDER_ITEMS**: Linked to products
-- **ORDER_PICKUPS**: Linked to stores
-- **CART_ITEMS**: Linked to products
-- **ADMIN_ACCOUNTS**: Admin users
-- **PROVINCES, CITIES, BARANGAYS**: Location hierarchy
-- **PRODUCTS, STORES**: Inventory and pickup locations
+### 2. Backend Setup
 
-This diagram shows the main relationships and dependencies between tables. For full details, see `schema.sql`.
+```bash
+# Create virtual environment
+python -m venv venv
+venv\Scripts\activate  # Windows
+# source venv/bin/activate  # Linux/Mac
 
----
+# Install dependencies
+pip install -r requirements.txt
 
-## Database Setup
+# Create .env file
+cp .env.example .env  # Then edit with your credentials
 
-### 1. Install PostgreSQL
-- Download and install from [https://www.postgresql.org/download/](https://www.postgresql.org/download/)
-- Create a database named `dali_db`
+# Start backend
+python main.py
+```
 
-### 2. Create Tables
-- Run the schema file:
-  ```sh
-  psql -U postgres -d dali_db -f schema.sql
-  ```
+Backend runs at: `http://localhost:8000`
 
-### 3. (Optional) Load Sample Data
-- Run:
-  ```sh
-  psql -U postgres -d dali_db -f data.sql
-  ```
+### 3. Frontend Setup
 
-### 4. Configure Connection
-- Edit `.env`:
-  ```
-  DATABASE_URL=postgresql://postgres:<your-password>@localhost:5432/dali_db
-  ```
+```bash
+cd frontend
+
+# Install dependencies
+npm install
+
+# Start development server
+npm run dev
+```
+
+Frontend runs at: `http://localhost:5173`
 
 ---
 
-## Running the Backend
+## 🔧 Environment Variables
 
-1. Install Python 3.10+
-2. Create a virtual environment:
-   ```sh
-   python -m venv venv
-   source venv/bin/activate  # On Windows: venv\Scripts\activate
-   ```
-3. Install dependencies:
-   ```sh
-   pip install -r requirements.txt
-   ```
-4. Configure `.env` (see sample in repo)
-5. Start the server:
-   ```sh
-   python main.py
-   ```
-6. API available at `http://localhost:8000`
+Create a `.env` file in the root directory:
+
+```env
+# Database
+DATABASE_URL=postgresql://postgres:password@localhost:5432/dali_db
+
+# Security
+SECRET_KEY=your-secret-key-here
+
+# Email (Gmail SMTP)
+SMTP_HOST=smtp.gmail.com
+SMTP_PORT=587
+SMTP_USER=your-email@gmail.com
+SMTP_PASSWORD=your-app-password
+EMAIL_FROM=your-email@gmail.com
+
+# Maya Payment (Sandbox)
+MAYA_API_KEY=your-api-key
+MAYA_SECRET_KEY=your-secret-key
+MAYA_PUBLIC_KEY=your-public-key
+MAYA_BASE_URL=https://pg-sandbox.paymaya.com
+
+# Shipping
+WAREHOUSE_LAT=14.5995
+WAREHOUSE_LON=120.9842
+
+# Frontend URL (for CORS and redirects)
+FRONTEND_URL=http://localhost:5173
+```
 
 ---
 
-## API Documentation
-- See `POSTMAN_TEST_SCENARIOS.md` for full endpoint list and test cases
-- All endpoints return JSON
-- CORS enabled for frontend integration
+## 📖 Documentation
+
+For complete API reference, database schema details, and user flows, see:
+
+📄 **[DOCUMENTATION.md](DOCUMENTATION.md)**
+
+This includes:
+- All 16 database tables with column definitions
+- All API endpoints organized by router
+- User flow diagrams (registration, shopping, checkout, reviews)
+- Admin flow diagrams (orders, inventory)
+- Payment integration details
 
 ---
 
-## Email & Payment Setup
-- Configure SMTP credentials in `.env` for email notifications
-- Maya sandbox credentials required for online payment (see `.env`)
+## 🗄️ Database Overview
+
+The application uses **16 tables**:
+
+| Category | Tables |
+|----------|--------|
+| Users | `accounts`, `admin_accounts` |
+| Products | `products` |
+| Cart | `cart_items` |
+| Orders | `orders`, `order_items`, `order_pickups`, `order_history` |
+| Addresses | `addresses`, `provinces`, `cities`, `barangays` |
+| Stores | `stores` |
+| Reviews | `reviews`, `review_images` |
+
+See [DOCUMENTATION.md](DOCUMENTATION.md) for complete schema details.
 
 ---
 
-## Technical Progress Report
+## 🔌 API Endpoints
 
-### Backend
-- All core features implemented and tested
-- Session-based authentication and password hashing working
-- Cart, checkout, order, address, and admin endpoints functional
-- Shipping fee calculation accurate and configurable
-- Maya payment gateway integrated (sandbox)
-- Email notifications working (SMTP required)
-- Database schema and sample data provided
+| Router | Base Path | Key Endpoints |
+|--------|-----------|---------------|
+| Auth | `/api/auth` | register, login, logout, profile, password reset |
+| Products | `/api/products` | list, search, categories, details |
+| Cart | `/api/cart` | view, add, update, remove, clear |
+| Checkout | `/api/checkout` | calculate shipping, place order, Maya callback |
+| Orders | `/api/orders` | list, details, cancel |
+| Addresses | `/api/addresses` | CRUD operations |
+| Reviews | `/api/reviews` | create, edit (one-time), delete, images |
+| Admin | `/api/admin` | dashboard, orders, inventory |
+| Locations | `/api/locations` | provinces, cities, barangays |
+| Stores | `/api/stores` | list pickup locations |
 
-### Documentation
-- Quickstart and full README included
-- Postman test scenarios for all endpoints
-- Inline code comments and docstrings
+See [DOCUMENTATION.md](DOCUMENTATION.md) for complete API reference.
 
-### Next Steps
-- Add more unit tests
-- Improve error handling and logging
-- Expand admin features (optional)
-- Add frontend integration guide
+---
+
+## 📱 Key User Flows
+
+### Shopping Flow
+1. Browse products → Add to cart → View cart
+2. Proceed to checkout → Select delivery method
+3. Choose payment → Place order
+4. Track order status → Receive delivery/pickup
+
+### Review Flow
+1. Order must be DELIVERED or COLLECTED
+2. Go to order details → Click "Write Review"
+3. Rate 1-5 stars, add comment/images (optional)
+4. Submit → Can edit ONE TIME if needed
+
+---
+
+## 🧪 Development
+
+### Running Tests
+```bash
+# Backend
+pytest
+
+# Frontend
+cd frontend && npm test
+```
+
+### Code Style
+- Backend: Black + isort
+- Frontend: ESLint + Prettier
+
+---
+
+## 📄 License
+
+This project is for educational purposes.
 
 ---
