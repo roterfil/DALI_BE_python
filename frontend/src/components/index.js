@@ -12,3 +12,6 @@ export { default as LocationPicker } from './LocationPicker';
 export { default as OrderTimeline } from './OrderTimeline';
 export { default as OrderCard } from './OrderCard';
 export { default as StoreMap } from './StoreMap';
+export { default as StarRating } from './StarRating';
+export { default as ReviewList } from './ReviewList';
+export { default as ReviewForm } from './ReviewForm';

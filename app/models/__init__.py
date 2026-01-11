@@ -103,6 +103,7 @@ class Product(Base):
     # Relationships
     cart_items = relationship("CartItem", back_populates="product")
     order_items = relationship("OrderItem", back_populates="product")
+    reviews = relationship("Review", back_populates="product", cascade="all, delete-orphan")
 
 
 # Account Model
@@ -124,6 +125,7 @@ class Account(Base):
     addresses = relationship("Address", back_populates="account", cascade="all, delete-orphan", order_by="Address.is_default.desc(), Address.address_id")
     cart_items = relationship("CartItem", back_populates="account", cascade="all, delete-orphan")
     orders = relationship("Order", back_populates="account", cascade="all, delete-orphan", order_by="Order.created_at.desc()")
+    reviews = relationship("Review", back_populates="account", cascade="all, delete-orphan")
     
     @property
     def email(self):
@@ -230,6 +232,7 @@ class Order(Base):
     order_items = relationship("OrderItem", back_populates="order", cascade="all, delete-orphan")
     order_history = relationship("OrderHistory", back_populates="order", cascade="all, delete-orphan", order_by="OrderHistory.event_timestamp.desc()")
     order_pickup = relationship("OrderPickup", back_populates="order", uselist=False, cascade="all, delete-orphan")
+    reviews = relationship("Review", back_populates="order", cascade="all, delete-orphan")
     
     @property
     def subtotal(self):
@@ -259,6 +262,7 @@ class OrderItem(Base):
     # Relationships
     order = relationship("Order", back_populates="order_items")
     product = relationship("Product", back_populates="order_items")
+    review = relationship("Review", back_populates="order_item", uselist=False)
     
     @property
     def subtotal(self):
@@ -305,3 +309,39 @@ class AuditLog(Base):
     entity_id = Column(Integer, nullable=True)
     details = Column(Text)
     created_at = Column(DateTime, default=datetime.utcnow)
+
+
+# Review Model
+class Review(Base):
+    __tablename__ = "reviews"
+    
+    review_id = Column(Integer, primary_key=True, index=True)
+    product_id = Column(Integer, ForeignKey("products.product_id", ondelete="CASCADE"), nullable=False)
+    account_id = Column(Integer, ForeignKey("accounts.account_id", ondelete="CASCADE"), nullable=False)
+    order_id = Column(Integer, ForeignKey("orders.order_id", ondelete="CASCADE"), nullable=False)
+    order_item_id = Column(Integer, ForeignKey("order_items.order_item_id", ondelete="CASCADE"), nullable=False, unique=True)
+    rating = Column(Integer, nullable=False)
+    comment = Column(Text)
+    is_anonymous = Column(Boolean, default=False)
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    
+    # Relationships
+    product = relationship("Product", back_populates="reviews")
+    account = relationship("Account", back_populates="reviews")
+    order = relationship("Order", back_populates="reviews")
+    order_item = relationship("OrderItem", back_populates="review")
+    images = relationship("ReviewImage", back_populates="review", cascade="all, delete-orphan")
+
+
+# Review Image Model
+class ReviewImage(Base):
+    __tablename__ = "review_images"
+    
+    image_id = Column(Integer, primary_key=True, index=True)
+    review_id = Column(Integer, ForeignKey("reviews.review_id", ondelete="CASCADE"), nullable=False)
+    image_url = Column(String(512), nullable=False)
+    created_at = Column(DateTime, default=datetime.utcnow)
+    
+    # Relationships
+    review = relationship("Review", back_populates="images")

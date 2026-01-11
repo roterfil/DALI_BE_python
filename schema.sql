@@ -1,4 +1,6 @@
 -- Drop tables in order of dependency to avoid foreign key constraints errors.
+DROP TABLE IF EXISTS review_images CASCADE;
+DROP TABLE IF EXISTS reviews CASCADE;
 DROP TABLE IF EXISTS order_history CASCADE;
 DROP TABLE IF EXISTS order_pickups CASCADE;
 DROP TABLE IF EXISTS admin_accounts CASCADE;
@@ -126,4 +128,26 @@ CREATE TABLE order_history (
                                status          VARCHAR(255) NOT NULL,
                                notes           VARCHAR(1024) NOT NULL,
                                event_timestamp TIMESTAMP WITHOUT TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Product Reviews
+CREATE TABLE reviews (
+                         review_id       SERIAL PRIMARY KEY,
+                         product_id      INTEGER NOT NULL REFERENCES products(product_id) ON DELETE CASCADE,
+                         account_id      INTEGER NOT NULL REFERENCES accounts(account_id) ON DELETE CASCADE,
+                         order_id        INTEGER NOT NULL REFERENCES orders(order_id) ON DELETE CASCADE,
+                         order_item_id   INTEGER NOT NULL REFERENCES order_items(order_item_id) ON DELETE CASCADE,
+                         rating          INTEGER NOT NULL CHECK (rating >= 1 AND rating <= 5),
+                         comment         TEXT,
+                         is_anonymous    BOOLEAN DEFAULT FALSE,
+                         created_at      TIMESTAMP WITHOUT TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+                         updated_at      TIMESTAMP WITHOUT TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+                         UNIQUE(order_item_id)
+);
+
+CREATE TABLE review_images (
+                               image_id        SERIAL PRIMARY KEY,
+                               review_id       INTEGER NOT NULL REFERENCES reviews(review_id) ON DELETE CASCADE,
+                               image_url       VARCHAR(512) NOT NULL,
+                               created_at      TIMESTAMP WITHOUT TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
