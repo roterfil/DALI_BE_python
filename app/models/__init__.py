@@ -116,6 +116,7 @@ class Account(Base):
     account_email = Column(String(255), unique=True, nullable=False, index=True)
     password_hash = Column(String(255), nullable=False)
     phone_number = Column(String(50))
+    profile_picture = Column(String(255))
     reset_password_token = Column(String(255))
     is_email_verified = Column(Boolean, default=False)
     email_verification_token = Column(String(255))

@@ -73,6 +73,7 @@ class PasswordReset(BaseModel):
 class AccountResponse(AccountBase):
     account_id: int
     is_email_verified: bool = False
+    profile_picture: Optional[str] = None
     
     class Config:
         from_attributes = True

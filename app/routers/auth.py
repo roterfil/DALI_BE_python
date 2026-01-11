@@ -1,10 +1,14 @@
 """
 Authentication router - handles login, register, password reset (JSON API).
 """
-from fastapi import APIRouter, Request, Depends, HTTPException, status
+import os
+import uuid
+import shutil
+from fastapi import APIRouter, Request, Depends, HTTPException, status, UploadFile, File
 from sqlalchemy.orm import Session
 from app.core.database import get_db
 from app.core.security import get_current_user, get_current_user_required
+from app.core.config import settings
 from app.services.account_service import AccountService
 from app.services.cart_service import CartService
 from app.services.email_service import EmailService
@@ -12,8 +16,17 @@ from app.schemas import (
     AccountCreate, AccountUpdate, AccountResponse,
     LoginRequest, PasswordChange, PasswordReset
 )
+from app.models import Account
 
 router = APIRouter(prefix="/api/auth", tags=["authentication"])
+
+# Directory for storing profile pictures
+PROFILE_PICTURES_DIR = os.path.join(settings.STATIC_FILES_PATH, "images", "profiles")
+
+
+def ensure_profile_pictures_dir():
+    """Ensure the profile pictures directory exists."""
+    os.makedirs(PROFILE_PICTURES_DIR, exist_ok=True)
 
 
 @router.post("/register")
@@ -94,6 +107,80 @@ async def update_profile(
     """Update user profile."""
     updated_account = AccountService.update_profile(db, current_user.email, update_data)
     return updated_account
+
+
+@router.post("/profile/picture", response_model=AccountResponse)
+async def upload_profile_picture(
+    file: UploadFile = File(...),
+    current_user: Account = Depends(get_current_user_required),
+    db: Session = Depends(get_db)
+):
+    """Upload or update profile picture."""
+    # Validate file type
+    allowed_types = ["image/jpeg", "image/png", "image/webp", "image/gif"]
+    if file.content_type not in allowed_types:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Invalid file type. Allowed: JPEG, PNG, WebP, GIF"
+        )
+    
+    # Validate file size (max 5MB)
+    file.file.seek(0, 2)
+    file_size = file.file.tell()
+    file.file.seek(0)
+    if file_size > 5 * 1024 * 1024:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="File too large. Maximum size is 5MB"
+        )
+    
+    # Delete old profile picture if exists
+    if current_user.profile_picture:
+        old_filename = current_user.profile_picture.split("/")[-1]
+        old_path = os.path.join(PROFILE_PICTURES_DIR, old_filename)
+        if os.path.exists(old_path):
+            os.remove(old_path)
+    
+    # Generate unique filename
+    ext = file.filename.split(".")[-1] if "." in file.filename else "jpg"
+    filename = f"{current_user.account_id}_{uuid.uuid4()}.{ext}"
+    
+    # Ensure directory exists and save file
+    ensure_profile_pictures_dir()
+    file_path = os.path.join(PROFILE_PICTURES_DIR, filename)
+    with open(file_path, "wb") as buffer:
+        shutil.copyfileobj(file.file, buffer)
+    
+    # Update database
+    account = db.query(Account).filter(Account.account_id == current_user.account_id).first()
+    account.profile_picture = f"/static/images/profiles/{filename}"
+    db.commit()
+    db.refresh(account)
+    
+    return account
+
+
+@router.delete("/profile/picture", response_model=AccountResponse)
+async def delete_profile_picture(
+    current_user: Account = Depends(get_current_user_required),
+    db: Session = Depends(get_db)
+):
+    """Delete profile picture."""
+    if current_user.profile_picture:
+        # Delete file
+        filename = current_user.profile_picture.split("/")[-1]
+        file_path = os.path.join(PROFILE_PICTURES_DIR, filename)
+        if os.path.exists(file_path):
+            os.remove(file_path)
+        
+        # Update database
+        account = db.query(Account).filter(Account.account_id == current_user.account_id).first()
+        account.profile_picture = None
+        db.commit()
+        db.refresh(account)
+        return account
+    
+    return current_user
 
 
 @router.post("/change-password")

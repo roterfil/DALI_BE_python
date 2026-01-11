@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { addressService, orderService, authService } from '../services';
@@ -7,10 +7,12 @@ import { OrderCard, AddressForm } from '../components';
 const Profile = () => {
   const navigate = useNavigate();
   const { user, updateUser } = useAuth();
+  const fileInputRef = useRef(null);
 
   const [orders, setOrders] = useState([]);
   const [addresses, setAddresses] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [uploadingPicture, setUploadingPicture] = useState(false);
   const [editingDetails, setEditingDetails] = useState(false);
   const [addingAddress, setAddingAddress] = useState(false);
   const [editingAddress, setEditingAddress] = useState(null);
@@ -57,6 +59,35 @@ const Profile = () => {
 
   const handleViewOrder = (orderId) => {
     navigate(`/order/${orderId}`);
+  };
+
+  const handleProfilePictureUpload = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    // Validate file size (5MB)
+    if (file.size > 5 * 1024 * 1024) {
+      setErrorMessage('File too large. Maximum size is 5MB');
+      setTimeout(() => setErrorMessage(''), 3000);
+      return;
+    }
+
+    try {
+      setUploadingPicture(true);
+      const updatedUser = await authService.uploadProfilePicture(file);
+      updateUser(updatedUser);
+      setSuccessMessage('Profile picture updated!');
+      setTimeout(() => setSuccessMessage(''), 3000);
+    } catch (error) {
+      setErrorMessage(error.response?.data?.detail || 'Failed to upload picture');
+      setTimeout(() => setErrorMessage(''), 3000);
+    } finally {
+      setUploadingPicture(false);
+      // Reset file input
+      if (fileInputRef.current) {
+        fileInputRef.current.value = '';
+      }
+    }
   };
 
   const handleDetailsSubmit = async (e) => {
@@ -165,11 +196,39 @@ const Profile = () => {
     <main className="profile-page">
       <div className="container">
         <div className="profile-header">
-          <div>
-            <p>Hello,</p>
-            <h1>
-              {user?.first_name} {user?.last_name}
-            </h1>
+          <div className="profile-header-content">
+            <div 
+              className="profile-picture-container"
+              onClick={() => fileInputRef.current?.click()}
+            >
+              {user?.profile_picture ? (
+                <img 
+                  src={user.profile_picture} 
+                  alt="Profile" 
+                  className="profile-picture"
+                />
+              ) : (
+                <div className="profile-picture-placeholder">
+                  {user?.first_name?.[0] || user?.email?.[0] || '?'}
+                </div>
+              )}
+              <div className="profile-picture-overlay">
+                <span>{uploadingPicture ? '...' : '📷'}</span>
+              </div>
+              <input
+                type="file"
+                ref={fileInputRef}
+                onChange={handleProfilePictureUpload}
+                accept="image/jpeg,image/png,image/webp,image/gif"
+                style={{ display: 'none' }}
+              />
+            </div>
+            <div>
+              <p>Hello,</p>
+              <h1>
+                {user?.first_name} {user?.last_name}
+              </h1>
+            </div>
           </div>
           <Link to="/change-password" className="edit-link">
             Change Password

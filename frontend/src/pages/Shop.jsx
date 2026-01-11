@@ -11,7 +11,7 @@ const categoryImages = {
   "Frozen Goods": "images/frozen-image.png",
   "Beverages": "images/beverages.png",
   "Cooking Essentials": "images/cooking.png",
-  "Chiller": "images/frozen-image.png",
+  "Chiller": "images/chiller.jpg",
   "default": "images/default-image.png"
 };
 const Shop = () => {

@@ -69,6 +69,24 @@ const authService = {
     return response.data;
   },
 
+  // Upload profile picture
+  uploadProfilePicture: async (file) => {
+    const formData = new FormData();
+    formData.append('file', file);
+    const response = await api.post('/auth/profile/picture', formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+    });
+    return response.data;
+  },
+
+  // Delete profile picture
+  deleteProfilePicture: async () => {
+    const response = await api.delete('/auth/profile/picture');
+    return response.data;
+  },
+
   // Admin login
   adminLogin: async (email, password) => {
     const response = await api.post('/admin/login', { email, password });

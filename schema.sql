@@ -62,6 +62,7 @@ CREATE TABLE accounts (
                           account_email       VARCHAR(255) UNIQUE NOT NULL,
                           password_hash       VARCHAR(255) NOT NULL,
                           phone_number        VARCHAR(50),
+                          profile_picture     VARCHAR(255),
                           reset_password_token VARCHAR(255),
                           is_email_verified   BOOLEAN DEFAULT FALSE,
                           email_verification_token VARCHAR(255)
