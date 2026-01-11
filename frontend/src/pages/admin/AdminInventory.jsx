@@ -28,7 +28,6 @@ const AdminInventory = () => {
     const loadCategories = async () => {
       try {
         const data = await productService.getCategories();
-        // Backend returns { categories: [...] }
         setCategories(data.categories || data || []);
       } catch (error) {
         console.error('Error loading categories:', error);
@@ -55,7 +54,6 @@ const AdminInventory = () => {
     loadSubcategories();
   }, [selectedCategory]);
 
-  // Fetch products
   const fetchProducts = useCallback(async () => {
     setLoading(true);
     setErrorMessage('');
@@ -66,25 +64,21 @@ const AdminInventory = () => {
       if (selectedSubcategory) params.subcategory = selectedSubcategory;
       
       const response = await productService.getProducts(params);
-      console.log('Products response:', response);
-      // Backend returns array directly, or object with products property
       let productList = Array.isArray(response) ? response : (response.products || []);
       
-      // Apply stock level filter
       if (stockFilter === 'out') {
         productList = productList.filter(p => p.product_quantity === 0);
       } else if (stockFilter === 'low') {
         productList = productList.filter(p => p.product_quantity > 0 && p.product_quantity <= 10);
       }
       
-      console.log('Product list:', productList);
       setProducts(productList);
       if (productList.length === 0) {
         setErrorMessage('No products found');
       }
     } catch (error) {
       console.error('Error fetching products:', error);
-      setErrorMessage('Failed to load products: ' + (error.message || 'Unknown error'));
+      setErrorMessage('Failed to load products');
     } finally {
       setLoading(false);
     }
@@ -97,9 +91,6 @@ const AdminInventory = () => {
 
   const { isSuperAdmin } = useAuth();
 
-  // price editing now moved to product detail page
-
-  // Update URL params
   useEffect(() => {
     const params = new URLSearchParams();
     if (query) params.set('query', query);
@@ -109,10 +100,16 @@ const AdminInventory = () => {
     setSearchParams(params);
   }, [query, selectedCategory, selectedSubcategory, stockFilter, setSearchParams]);
 
-  // Handle category change - reset subcategory
   const handleCategoryChange = (category) => {
     setSelectedCategory(category);
     setSelectedSubcategory('');
+  };
+
+  const handleReset = () => {
+    setQuery('');
+    setSelectedCategory('');
+    setSelectedSubcategory('');
+    setStockFilter('');
   };
 
   const formatPrice = (price) => {
@@ -123,50 +120,68 @@ const AdminInventory = () => {
   };
 
   return (
-    <div className="shop-container container">
+    <div className="shop-layout" style={{ display: 'flex', padding: '20px 5%', gap: '30px', fontFamily: 'Arial, sans-serif' }}>
       {/* Filter Sidebar */}
-      <aside className="filter-sidebar">
-        <h4>Filters</h4>
-        <div className="filter-group">
-          <h5>CATEGORY</h5>
-          <ul>
-            <li>
-              <input
-                type="radio"
-                name="category"
-                value=""
-                id="cat-all"
-                checked={selectedCategory === '' && selectedSubcategory === ''}
-                onChange={() => handleCategoryChange('')}
-              />
-              <label htmlFor="cat-all">All</label>
-            </li>
-            {categories.map((cat, index) => (
-              <li key={cat} className="category-item">
+      <aside style={{ width: '250px', flexShrink: 0 }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+          <h2 style={{ fontSize: '24px', fontWeight: '600', margin: 0, color: '#333' }}>Filters</h2>
+          <button 
+            onClick={handleReset}
+            style={{
+              padding: '5px 15px',
+              borderRadius: '20px',
+              border: '1px solid #ccc',
+              backgroundColor: 'white',
+              fontSize: '12px',
+              color: '#888',
+              cursor: 'pointer'
+            }}
+          >
+            Clear filter
+          </button>
+        </div>
+
+        {/* Category Section */}
+        <div className="filter-group" style={{ marginBottom: '25px' }}>
+          <h3 style={{ fontSize: '13px', fontWeight: 'bold', color: '#888', marginBottom: '15px', letterSpacing: '1px' }}>CATEGORY</h3>
+          <ul style={{ listStyle: 'none', padding: 0 }}>
+             <li style={{ marginBottom: '12px', display: 'flex', alignItems: 'center' }}>
                 <input
-                  type="radio"
-                  name="category"
-                  value={cat}
-                  id={`cat-${index}`}
-                  checked={selectedCategory === cat && selectedSubcategory === ''}
-                  onChange={() => handleCategoryChange(cat)}
+                  type="checkbox"
+                  id="cat-all"
+                  checked={selectedCategory === ''}
+                  onChange={() => handleCategoryChange('')}
+                  style={{ width: '18px', height: '18px', marginRight: '10px', accentColor: '#b21984' }}
                 />
-                <label htmlFor={`cat-${index}`}>{cat}</label>
+                <label htmlFor="cat-all" style={{ fontSize: '14px', color: '#444', cursor: 'pointer' }}>All Categories</label>
+              </li>
+            {categories.map((cat, index) => (
+              <li key={cat} style={{ marginBottom: '12px' }}>
+                <div style={{ display: 'flex', alignItems: 'center' }}>
+                  <input
+                    type="checkbox"
+                    id={`cat-${index}`}
+                    checked={selectedCategory === cat}
+                    onChange={() => handleCategoryChange(cat)}
+                    style={{ width: '18px', height: '18px', marginRight: '10px', accentColor: '#b21984' }}
+                  />
+                  <label htmlFor={`cat-${index}`} style={{ fontSize: '14px', color: selectedCategory === cat ? '#b21984' : '#444', fontWeight: selectedCategory === cat ? 'bold' : 'normal', cursor: 'pointer' }}>
+                    {cat}
+                  </label>
+                </div>
                 
-                {/* Subcategories nested under selected category */}
                 {selectedCategory === cat && subcategories.length > 0 && (
-                  <ul className="subcategory-list" style={{ marginLeft: '20px', marginTop: '8px' }}>
+                  <ul style={{ listStyle: 'none', padding: '10px 0 0 28px' }}>
                     {subcategories.map((subcat, subIndex) => (
-                      <li key={subcat}>
-                        <input
-                          type="radio"
-                          name="subcategory"
-                          value={subcat}
+                      <li key={subcat} style={{ marginBottom: '8px', display: 'flex', alignItems: 'center' }}>
+                         <input
+                          type="checkbox"
                           id={`subcat-${subIndex}`}
                           checked={selectedSubcategory === subcat}
-                          onChange={() => setSelectedSubcategory(subcat)}
+                          onChange={() => setSelectedSubcategory(subcat === selectedSubcategory ? '' : subcat)}
+                          style={{ width: '16px', height: '16px', marginRight: '10px', accentColor: '#b21984' }}
                         />
-                        <label htmlFor={`subcat-${subIndex}`}>{subcat}</label>
+                        <label htmlFor={`subcat-${subIndex}`} style={{ fontSize: '13px', color: '#666', cursor: 'pointer' }}>{subcat}</label>
                       </li>
                     ))}
                   </ul>
@@ -176,83 +191,130 @@ const AdminInventory = () => {
           </ul>
         </div>
 
-        {/* Stock Level Filter */}
-        <div className="filter-group" style={{ marginTop: '20px' }}>
-          <h5>STOCK LEVEL</h5>
-          <ul>
-            <li>
+        {/* Stock Level Section */}
+        <div className="filter-group">
+          <h3 style={{ fontSize: '13px', fontWeight: 'bold', color: '#888', marginBottom: '15px', letterSpacing: '1px' }}>STOCK LEVEL</h3>
+          <ul style={{ listStyle: 'none', padding: 0 }}>
+            <li style={{ marginBottom: '12px', display: 'flex', alignItems: 'center' }}>
               <input
-                type="radio"
-                name="stockFilter"
-                value=""
+                type="checkbox"
                 id="stock-all"
                 checked={stockFilter === ''}
                 onChange={() => setStockFilter('')}
+                style={{ width: '18px', height: '18px', marginRight: '10px', accentColor: '#b21984' }}
               />
-              <label htmlFor="stock-all">All</label>
+              <label htmlFor="stock-all" style={{ fontSize: '14px', color: '#444', cursor: 'pointer' }}>All</label>
             </li>
-            <li>
+            <li style={{ marginBottom: '12px', display: 'flex', alignItems: 'center' }}>
               <input
-                type="radio"
-                name="stockFilter"
-                value="low"
+                type="checkbox"
                 id="stock-low"
                 checked={stockFilter === 'low'}
-                onChange={() => setStockFilter('low')}
+                onChange={() => setStockFilter(stockFilter === 'low' ? '' : 'low')}
+                style={{ width: '18px', height: '18px', marginRight: '10px', accentColor: '#b21984' }}
               />
-              <label htmlFor="stock-low" style={{ color: '#856404' }}>Low Stock (≤10)</label>
+              <label htmlFor="stock-low" style={{ fontSize: '14px', color: '#b58105', fontWeight: '500', cursor: 'pointer' }}>Low Stock (≤10)</label>
             </li>
-            <li>
+            <li style={{ marginBottom: '12px', display: 'flex', alignItems: 'center' }}>
               <input
-                type="radio"
-                name="stockFilter"
-                value="out"
+                type="checkbox"
                 id="stock-out"
                 checked={stockFilter === 'out'}
-                onChange={() => setStockFilter('out')}
+                onChange={() => setStockFilter(stockFilter === 'out' ? '' : 'out')}
+                style={{ width: '18px', height: '18px', marginRight: '10px', accentColor: '#b21984' }}
               />
-              <label htmlFor="stock-out" style={{ color: '#dc3545' }}>Out of Stock</label>
+              <label htmlFor="stock-out" style={{ fontSize: '14px', color: '#dc3545', fontWeight: '500', cursor: 'pointer' }}>Out of Stock</label>
             </li>
           </ul>
         </div>
       </aside>
+{/* Main Content Area */}
+<main style={{ flexGrow: 1 }}>
+  {/* Magenta Search Banner */}
+  <section style={{ 
+    backgroundColor: '#b21984', 
+    borderRadius: '10px', 
+    height: '180px', 
+    display: 'flex', 
+    justifyContent: 'center', 
+    alignItems: 'center',
+    marginBottom: '30px'
+  }}>
+    
+    {/* Success Message Banner */}
+    {successMessage && (
+      <div style={{
+        backgroundColor: '#d4edda',
+        color: '#155724',
+        padding: '10px 20px',
+        borderRadius: '8px',
+        marginBottom: '15px', // Space between message and search bar
+        width: '70%',
+        textAlign: 'center',
+        fontSize: '14px',
+        fontWeight: '500'
+      }}>
+        {successMessage}
+      </div>
+    )}
 
-      {/* Main Content Area */}
-      <main className="product-grid-container">
-        <section className="search-banner admin-inventory-banner">
-          <div className="banner-flash-wrapper">
-            {successMessage && <div className="auth-success">{successMessage}</div>}
-            {errorMessage && <div className="auth-error">{errorMessage}</div>}
-          </div>
+    
+    {/* Search Input Container */}
+    <div style={{ position: 'relative', width: '70%' }}>
+      <span style={{ 
+        position: 'absolute', 
+        left: '15px', 
+        top: '50%', 
+        transform: 'translateY(-50%)', 
+        color: '#888' 
+      }}>
+        <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+        </svg>
+      </span>
+      <input
+        type="text"
+        placeholder="Search"
+        value={query}
+        onChange={(e) => setQuery(e.target.value)}
+        style={{
+          width: '100%',
+          padding: '12px 12px 12px 45px',
+          borderRadius: '8px',
+          border: 'none',
+          fontSize: '16px',
+          outline: 'none'
+        }}
+      />
+    </div>
+  </section>
 
-          <input
-            type="search"
-            id="search-input"
-            name="query"
-            className="main-search-input"
-            placeholder="Search products..."
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-          />
-        </section>
 
-        {/* Product Grid Results */}
+{/* Product Grid Results */}
         <div id="product-grid-results">
           {loading ? (
-            <p style={{ padding: '20px' }}>Loading products...</p>
+            <div style={{ textAlign: 'center', padding: '50px', color: '#666' }}>Loading products...</div>
+          ) : products.length === 0 ? (
+            /* Error Message placed here inside the grid area */
+            <div style={{ 
+              textAlign: 'center', 
+              padding: '80px 20px', 
+              backgroundColor: '#f8f9fa', 
+              borderRadius: '10px',
+              border: '2px dashed #ddd',
+              color: '#721c24'
+            }}>
+              <div style={{ fontSize: '48px', marginBottom: '10px' }}>🔍</div>
+              <h3 style={{ margin: 0 }}>No products found</h3>
+              <p style={{ color: '#888', marginTop: '10px' }}>Try adjusting your search or filters.</p>
+            </div>
           ) : (
             <div className="product-grid">
               {products.map((product) => (
                 <div key={product.product_id} className="product-card">
-                  <Link
-                    className="product-card-body"
-                    to={`/admin/inventory/${product.product_id}`}
-                  >
+                  <Link className="product-card-body" to={`/admin/inventory/${product.product_id}`}>
                     <div className="product-image-container">
-                      <img
-                        src={`/images/products/${product.image}`}
-                        alt={product.product_name}
-                      />
+                      <img src={`/images/products/${product.image}`} alt={product.product_name} />
                     </div>
                     <div className="product-card-info">
                       <p className="product-card-category">{product.product_category}</p>
@@ -261,37 +323,27 @@ const AdminInventory = () => {
                     </div>
                   </Link>
                   <div className="product-card-actions">
-                    <div className="product-stock-level" style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px' }}>
-                      <span>Stock: {product.product_quantity}</span>
-                      {product.product_quantity === 0 && (
-                        <span style={{
-                          backgroundColor: '#dc3545',
-                          color: 'white',
-                          padding: '2px 8px',
-                          borderRadius: '4px',
-                          fontSize: '0.75rem',
-                          fontWeight: '600'
-                        }}>
-                          Out of Stock
-                        </span>
-                      )}
-                      {product.product_quantity > 0 && product.product_quantity <= 10 && (
-                        <span style={{
-                          backgroundColor: '#ffc107',
-                          color: '#212529',
-                          padding: '2px 8px',
-                          borderRadius: '4px',
-                          fontSize: '0.75rem',
-                          fontWeight: '600'
-                        }}>
-                          Low Stock
-                        </span>
-                      )}
+                    <div style={{ 
+                        fontSize: '14px', 
+                        marginBottom: '10px',
+                        color: product.product_quantity === 0 ? '#dc3545' : product.product_quantity <= 10 ? '#b58105' : 'inherit'
+                    }}>
+                      <strong>Stock: {product.product_quantity}</strong>
                     </div>
                     <Link
                       to={`/admin/inventory/${product.product_id}`}
-                      className="btn btn-primary btn-small"
-                      style={{ width: '90%', textAlign: 'center', padding: '8px 15px', fontSize: '0.9rem' }}
+                      className="btn btn-primary"
+                      style={{ 
+                        display: 'block', 
+                        backgroundColor: '#b21984', 
+                        color: 'white', 
+                        textDecoration: 'none', 
+                        padding: '10px', 
+                        textAlign: 'center', 
+                        borderRadius: '20px',
+                        fontSize: '14px',
+                        fontWeight: 'bold'
+                      }}
                     >
                       Manage Product
                     </Link>
@@ -302,7 +354,6 @@ const AdminInventory = () => {
           )}
         </div>
       </main>
-      {/* Price edit modal is available on product detail page for super admins */}
     </div>
   );
 };

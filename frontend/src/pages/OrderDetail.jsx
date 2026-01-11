@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
-import { orderService } from '../services';
-import { OrderTimeline } from '../components';
+import { orderService, reviewService } from '../services';
+import { OrderTimeline, StarRating, ReviewForm } from '../components';
 
 const OrderDetail = () => {
   const { id } = useParams();
@@ -10,6 +10,9 @@ const OrderDetail = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [successMessage, setSuccessMessage] = useState('');
+  const [reviewableItems, setReviewableItems] = useState([]);
+  const [reviewingItem, setReviewingItem] = useState(null);
+  const [loadingReviews, setLoadingReviews] = useState(false);
 
   useEffect(() => {
     const loadOrder = async () => {
@@ -25,6 +28,35 @@ const OrderDetail = () => {
     };
     loadOrder();
   }, [id]);
+
+  useEffect(() => {
+    if (order && (order.shipping_status === 'DELIVERED' || order.shipping_status === 'COLLECTED')) {
+      fetchReviewableItems();
+    }
+  }, [order]);
+
+  const fetchReviewableItems = async () => {
+    try {
+      setLoadingReviews(true);
+      const items = await reviewService.getReviewableItems(id);
+      setReviewableItems(items.items || []);
+    } catch (err) {
+      console.error('Error fetching reviewable items:', err);
+    } finally {
+      setLoadingReviews(false);
+    }
+  };
+
+  const getReviewStatus = (orderItemId) => {
+    const item = reviewableItems.find(i => i.order_item_id === orderItemId);
+    return item ? { isReviewed: item.is_reviewed, review: item.review } : null;
+  };
+
+  const handleReviewSubmitted = () => {
+    setReviewingItem(null);
+    fetchReviewableItems();
+    setSuccessMessage('Review submitted successfully!');
+  };
 
   const handleCancelOrder = async () => {
     if (!confirm('Are you sure you want to cancel this order?')) return;
@@ -218,22 +250,67 @@ const OrderDetail = () => {
               <div>Price</div>
               <div>Quantity</div>
               <div>Total</div>
+              {(order.shipping_status === 'DELIVERED' || order.shipping_status === 'COLLECTED') && (
+                <div className="review-col">Review</div>
+              )}
             </div>
-            {order.order_items?.map((item, index) => (
-              <div key={index} className="product-list-item">
-                <div className="product-col">
-                  <img
-                    src={`/images/products/${item.product.image}`}
-                    alt={item.product.product_name}
-                  />
-                  <span>{item.product.product_name}</span>
+            {order.order_items?.map((item, index) => {
+              const reviewStatus = getReviewStatus(item.order_item_id);
+              const canReview = order.shipping_status === 'DELIVERED' || order.shipping_status === 'COLLECTED';
+              
+              return (
+                <div key={index} className="product-list-item">
+                  <div className="product-col">
+                    <img
+                      src={`/images/products/${item.product.image}`}
+                      alt={item.product.product_name}
+                    />
+                    <span>{item.product.product_name}</span>
+                  </div>
+                  <div>{formatPrice(item.product.product_price)}</div>
+                  <div>{item.quantity}</div>
+                  <div>{formatPrice(parseFloat(item.product.product_price) * item.quantity)}</div>
+                  {canReview && (
+                    <div className="review-action">
+                      {loadingReviews ? (
+                        <span className="loading-text">Loading...</span>
+                      ) : reviewStatus?.isReviewed ? (
+                        <div className="reviewed-badge">
+                          <StarRating rating={reviewStatus.review.rating} size="small" />
+                          <span>Reviewed</span>
+                        </div>
+                      ) : (
+                        <button
+                          className="btn btn-sm btn-primary"
+                          onClick={() => setReviewingItem({
+                            order_item_id: item.order_item_id,
+                            product_id: item.product.product_id,
+                            product_name: item.product.product_name,
+                            product_image: item.product.image,
+                            quantity: item.quantity,
+                          })}
+                        >
+                          Write Review
+                        </button>
+                      )}
+                    </div>
+                  )}
                 </div>
-                <div>{formatPrice(item.product.product_price)}</div>
-                <div>{item.quantity}</div>
-                <div>{formatPrice(parseFloat(item.product.product_price) * item.quantity)}</div>
-              </div>
-            ))}
+              );
+            })}
           </div>
+
+          {/* Review Form Modal */}
+          {reviewingItem && (
+            <div className="review-form-section">
+              <h3>Write a Review</h3>
+              <ReviewForm
+                orderItem={reviewingItem}
+                onReviewSubmitted={handleReviewSubmitted}
+                onCancel={() => setReviewingItem(null)}
+              />
+            </div>
+          )}
 
           {/* Customer Actions */}
           {order.shipping_status === 'PROCESSING' && (

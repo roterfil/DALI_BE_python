@@ -14,6 +14,7 @@ const Profile = () => {
   const [editingDetails, setEditingDetails] = useState(false);
   const [addingAddress, setAddingAddress] = useState(false);
   const [editingAddress, setEditingAddress] = useState(null);
+  const [showAllOrders, setShowAllOrders] = useState(false);
   const [successMessage, setSuccessMessage] = useState('');
   const [errorMessage, setErrorMessage] = useState('');
 
@@ -199,6 +200,14 @@ const Profile = () => {
             <section id="orders">
               <div className="section-header">
                 <h2>My Orders</h2>
+                {orders.length > 5 && (
+                  <button
+                    className="btn btn-outline btn-sm"
+                    onClick={() => setShowAllOrders(!showAllOrders)}
+                  >
+                    {showAllOrders ? 'Show Less' : `View All (${orders.length})`}
+                  </button>
+                )}
               </div>
               {orders.length === 0 ? (
                 <div className="no-content-notice">
@@ -209,13 +218,23 @@ const Profile = () => {
                   className="admin-order-grid"
                   style={{ gridTemplateColumns: '1fr' }}
                 >
-                  {orders.map((order) => (
+                  {(showAllOrders ? orders : orders.slice(0, 5)).map((order) => (
                     <OrderCard
                       key={order.order_id}
                       order={order}
                       onViewDetails={handleViewOrder}
                     />
                   ))}
+                </div>
+              )}
+              {!showAllOrders && orders.length > 5 && (
+                <div style={{ textAlign: 'center', marginTop: '20px' }}>
+                  <button
+                    className="btn btn-primary"
+                    onClick={() => setShowAllOrders(true)}
+                  >
+                    View All Orders ({orders.length})
+                  </button>
                 </div>
               )}
             </section>

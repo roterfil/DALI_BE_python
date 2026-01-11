@@ -91,4 +91,19 @@ export const adminAPI = {
   getAudit: (params = {}) => api.get('/admin/audit', { params }),
 };
 
+// Reviews API
+export const reviewsAPI = {
+  getProductReviews: (productId, params) => api.get(`/reviews/product/${productId}`, { params }),
+  getProductReviewSummary: (productId) => api.get(`/reviews/product/${productId}/summary`),
+  getReviewableItems: (orderId) => api.get(`/reviews/order/${orderId}/reviewable`),
+  createReview: (data) => api.post('/reviews', data),
+  uploadReviewImage: (reviewId, formData) => api.post(`/reviews/${reviewId}/images`, formData, {
+    headers: { 'Content-Type': 'multipart/form-data' },
+  }),
+  updateReview: (reviewId, data) => api.put(`/reviews/${reviewId}`, data),
+  deleteReview: (reviewId) => api.delete(`/reviews/${reviewId}`),
+  deleteReviewImage: (reviewId, imageId) => api.delete(`/reviews/${reviewId}/images/${imageId}`),
+  getMyReviews: (params) => api.get('/reviews/my-reviews', { params }),
+};
+
 export default api;

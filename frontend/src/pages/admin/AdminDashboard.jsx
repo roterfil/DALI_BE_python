@@ -494,12 +494,8 @@ const AdminDashboard = () => {
                       />
                     </td>
                     <td>
-                      <button className="edit-btn">Edit</button>
-                      {isSuperAdmin && (
-                        <button className="edit-price-btn" style={{ marginLeft: 8 }} onClick={() => openPriceModal(product)}>
-                          Edit Price
-                        </button>
-                      )}
+                      
+                      
                     </td>
                   </tr>
                 ))}

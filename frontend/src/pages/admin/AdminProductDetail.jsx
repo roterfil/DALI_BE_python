@@ -262,73 +262,190 @@ const AdminProductDetail = () => {
         />
       )}
 
-      {isEditOpen && (
-        <div className="edit-product-form" style={{ marginTop: '30px' }}>
-          <h3>Edit Product</h3>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', maxWidth: '640px' }}>
-            <label>Product Name</label>
-            <input value={editName} onChange={(e) => setEditName(e.target.value)} />
+{isEditOpen && (
+  <div className="edit-product-form" style={{ marginTop: '40px', maxWidth: '640px' }}>
+    <h2 style={{ fontSize: '24px', fontWeight: '700', marginBottom: '24px', color: '#333' }}>
+      Edit Product
+    </h2>
+    
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+      
+      {/* Form Group: Name */}
+      <div style={{ display: 'flex', flexDirection: 'column' }}>
+        <label style={{ fontSize: '14px', fontWeight: '600', color: '#666', marginBottom: '6px' }}>
+          Product Name
+        </label>
+        <input 
+          value={editName} 
+          onChange={(e) => setEditName(e.target.value)} 
+          style={{
+            padding: '10px 12px',
+            border: '1px solid #ccc',
+            borderRadius: '4px',
+            fontSize: '16px',
+            outline: 'none'
+          }}
+        />
+      </div>
 
-            <label>Description</label>
-            <textarea value={editDescription} onChange={(e) => setEditDescription(e.target.value)} rows={4} />
+      {/* Form Group: Description */}
+      <div style={{ display: 'flex', flexDirection: 'column' }}>
+        <label style={{ fontSize: '14px', fontWeight: '600', color: '#666', marginBottom: '6px' }}>
+          Description
+        </label>
+        <textarea 
+          value={editDescription} 
+          onChange={(e) => setEditDescription(e.target.value)} 
+          rows={4} 
+          style={{
+            padding: '10px 12px',
+            border: '1px solid #ccc',
+            borderRadius: '4px',
+            fontSize: '16px',
+            fontFamily: 'inherit',
+            resize: 'vertical',
+            outline: 'none'
+          }}
+        />
+      </div>
 
-            <label>Category</label>
-            <select value={editCategory} onChange={(e) => setEditCategory(e.target.value)}>
-              <option value="">-- Select category --</option>
-              {categories.map((c) => (
-                <option key={c} value={c}>{c}</option>
+      {/* Row for Category & Subcategory */}
+      <div style={{ display: 'flex', gap: '16px' }}>
+        <div style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
+          <label style={{ fontSize: '14px', fontWeight: '600', color: '#666', marginBottom: '6px' }}>
+            Category
+          </label>
+          <select 
+            value={editCategory} 
+            onChange={(e) => setEditCategory(e.target.value)}
+            style={{ padding: '10px', border: '1px solid #ccc', borderRadius: '4px', fontSize: '16px' }}
+          >
+            <option value="">-- Select category --</option>
+            {categories.map((c) => (
+              <option key={c} value={c}>{c}</option>
+            ))}
+          </select>
+        </div>
+
+        {subcategories.length > 0 && (
+          <div style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
+            <label style={{ fontSize: '14px', fontWeight: '600', color: '#666', marginBottom: '6px' }}>
+              Subcategory
+            </label>
+            <select 
+              value={editSubcategory} 
+              onChange={(e) => setEditSubcategory(e.target.value)}
+              style={{ padding: '10px', border: '1px solid #ccc', borderRadius: '4px', fontSize: '16px' }}
+            >
+              <option value="">-- Select subcategory --</option>
+              {subcategories.map((s) => (
+                <option key={s} value={s}>{s}</option>
               ))}
             </select>
-
-            {subcategories.length > 0 && (
-              <>
-                <label>Subcategory</label>
-                <select value={editSubcategory} onChange={(e) => setEditSubcategory(e.target.value)}>
-                  <option value="">-- Select subcategory --</option>
-                  {subcategories.map((s) => (
-                    <option key={s} value={s}>{s}</option>
-                  ))}
-                </select>
-              </>
-            )}
-
-            <label>Image</label>
-            <input type="file" accept="image/*" onChange={(e) => setEditImageFile(e.target.files[0])} />
-
-            <div style={{ display: 'flex', gap: '8px' }}>
-              <button
-                className="btn btn-primary"
-                onClick={async () => {
-                  setError('');
-                  setSuccess('');
-                  try {
-                    const payload = {
-                      product_name: editName,
-                      product_description: editDescription,
-                      product_category: editCategory,
-                      product_subcategory: editSubcategory,
-                      imageFile: editImageFile,
-                    };
-                    await adminService.updateProduct(id, payload);
-                    // refresh local product state
-                    const updated = await productService.getProduct(id);
-                    setProduct(updated);
-                    setSuccess('Product updated successfully');
-                    setIsEditOpen(false);
-                    setTimeout(() => setSuccess(''), 3000);
-                  } catch (err) {
-                    console.error('Failed to update product', err);
-                    setError(err.response?.data?.detail || 'Failed to update product');
-                  }
-                }}
-              >
-                Save Changes
-              </button>
-              <button className="btn muted" onClick={() => setIsEditOpen(false)}>Cancel</button>
-            </div>
           </div>
+        )}
+      </div>
+
+      {/* Form Group: Image */}
+<div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+        <label style={{ fontSize: '14px', fontWeight: '600', color: '#666' }}>
+          Update Image
+        </label>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+          {/* Custom Styled Button */}
+          <label 
+            htmlFor="product-image-upload" 
+            style={{
+              display: 'inline-block',
+              padding: '8px 20px',
+              backgroundColor: '#f1f3f5',
+              color: '#495057',
+              border: '1px solid #ced4da',
+              borderRadius: '20px',
+              cursor: 'pointer',
+              fontSize: '14px',
+              fontWeight: '600',
+              transition: 'all 0.2s ease'
+            }}
+            onMouseOver={(e) => e.target.style.backgroundColor = '#e9ecef'}
+            onMouseOut={(e) => e.target.style.backgroundColor = '#f1f3f5'}
+          >
+            Choose File
+          </label>
+          
+          {/* File Name Display */}
+          <span style={{ fontSize: '14px', color: '#777', fontStyle: 'italic' }}>
+            {editImageFile ? editImageFile.name : 'No file chosen'}
+          </span>
+
+          {/* Hidden Actual Input */}
+          <input 
+            id="product-image-upload"
+            type="file" 
+            accept="image/*" 
+            onChange={(e) => setEditImageFile(e.target.files[0])} 
+            style={{ display: 'none' }} 
+          />
         </div>
-      )}
+      </div>
+
+
+      {/* Action Buttons */}
+      <div style={{ display: 'flex', gap: '12px', marginTop: '8px' }}>
+        <button
+          style={{
+            backgroundColor: '#C11B6C', // Brand Magenta
+            color: 'white',
+            padding: '12px 24px',
+            border: 'none',
+            borderRadius: '25px', // Match the rounded style of your stock button
+            fontWeight: '600',
+            cursor: 'pointer',
+            fontSize: '15px'
+          }}
+          onClick={async () => {
+            setError('');
+            setSuccess('');
+            try {
+              const payload = {
+                product_name: editName,
+                product_description: editDescription,
+                product_category: editCategory,
+                product_subcategory: editSubcategory,
+                imageFile: editImageFile,
+              };
+              await adminService.updateProduct(id, payload);
+              const updated = await productService.getProduct(id);
+              setProduct(updated);
+              setSuccess('Product updated successfully');
+              setIsEditOpen(false);
+              setTimeout(() => setSuccess(''), 3000);
+            } catch (err) {
+              setError(err.response?.data?.detail || 'Failed to update product');
+            }
+          }}
+        >
+          Save Changes
+        </button>
+        <button 
+          style={{
+            backgroundColor: '#f4f4f4',
+            color: '#555',
+            padding: '12px 24px',
+            border: '1px solid #ddd',
+            borderRadius: '25px',
+            fontWeight: '600',
+            cursor: 'pointer',
+            fontSize: '15px'
+          }}
+          onClick={() => setIsEditOpen(false)}
+        >
+          Cancel
+        </button>
+      </div>
+    </div>
+  </div>
+)}
     </main>
   );
 };

@@ -8,3 +8,4 @@ export { default as addressService } from './addressService';
 export { default as storeService } from './storeService';
 export { default as locationService } from './locationService';
 export { default as adminService } from './adminService';
+export { default as reviewService } from './reviewService';

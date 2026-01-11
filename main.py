@@ -1,8 +1,10 @@
 """
 Main FastAPI application for DALI E-Commerce.
 """
+import os
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
 from starlette.middleware.sessions import SessionMiddleware
 
 from app.core.config import settings
@@ -17,7 +19,8 @@ from app.routers import (
     addresses,
     stores,
     locations,
-    admin
+    admin,
+    reviews
 )
 
 # Create database tables
@@ -94,6 +97,12 @@ app.include_router(addresses.router)
 app.include_router(stores.router)
 app.include_router(locations.router)
 app.include_router(admin.router)
+app.include_router(reviews.router)
+
+# Mount static files for serving uploaded images (reviews, etc.)
+static_images_path = os.path.join(settings.STATIC_FILES_PATH, "images")
+os.makedirs(static_images_path, exist_ok=True)
+app.mount("/static/images", StaticFiles(directory=static_images_path), name="static-images")
 
 
 @app.get("/health")

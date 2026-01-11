@@ -15,10 +15,12 @@ const ShopPage = () => {
   const [selectedSubcategories, setSelectedSubcategories] = useState([]);
   const [priceRange, setPriceRange] = useState({ min: '', max: '' });
   const [sortBy, setSortBy] = useState('popular');
+  const [searchQuery, setSearchQuery] = useState(searchParams.get('search') || '');
   const { addToCart } = useCart();
   const { showToast } = useToast();
   const [addingToCart, setAddingToCart] = useState(null);
 
+  // Fetch Categories
   useEffect(() => {
     const fetchCategories = async () => {
       try {
@@ -31,6 +33,7 @@ const ShopPage = () => {
     fetchCategories();
   }, []);
 
+  // Fetch Subcategories
   useEffect(() => {
     const fetchSubcategories = async () => {
       if (selectedCategory) {
@@ -40,13 +43,12 @@ const ShopPage = () => {
         } catch (error) {
           console.error('Error fetching subcategories:', error);
         }
-      } else {
-        setSubcategories([]);
       }
     };
     fetchSubcategories();
   }, [selectedCategory]);
 
+  // Fetch Products
   useEffect(() => {
     const fetchProducts = async () => {
       setLoading(true);
@@ -54,31 +56,10 @@ const ShopPage = () => {
         const params = {};
         if (selectedCategory) params.category = selectedCategory;
         if (selectedSubcategories.length > 0) params.subcategory = selectedSubcategories[0];
-        if (searchParams.get('search')) params.search = searchParams.get('search');
+        if (searchQuery) params.search = searchQuery;
 
         const response = await productsAPI.getProducts(params);
-        let productList = response.data || [];
-
-        // Apply price filter
-        if (priceRange.min || priceRange.max) {
-          productList = productList.filter(p => {
-            const price = parseFloat(p.product_price);
-            if (priceRange.min && price < parseFloat(priceRange.min)) return false;
-            if (priceRange.max && price > parseFloat(priceRange.max)) return false;
-            return true;
-          });
-        }
-
-        // Sort products
-        if (sortBy === 'price-low') {
-          productList.sort((a, b) => parseFloat(a.product_price) - parseFloat(b.product_price));
-        } else if (sortBy === 'price-high') {
-          productList.sort((a, b) => parseFloat(b.product_price) - parseFloat(a.product_price));
-        } else if (sortBy === 'name') {
-          productList.sort((a, b) => a.product_name.localeCompare(b.product_name));
-        }
-
-        setProducts(productList);
+        setProducts(response.data || []);
       } catch (error) {
         console.error('Error fetching products:', error);
       } finally {
@@ -86,184 +67,120 @@ const ShopPage = () => {
       }
     };
     fetchProducts();
-  }, [selectedCategory, selectedSubcategories, searchParams, priceRange, sortBy]);
+  }, [selectedCategory, selectedSubcategories, searchQuery]);
 
   const handleCategorySelect = (category) => {
     setSelectedCategory(category);
     setSelectedSubcategories([]);
-    setSearchParams(category ? { category } : {});
+    setSearchParams({ category });
   };
 
-  const handleSubcategoryToggle = (subcategory) => {
-    setSelectedSubcategories(prev => {
-      if (prev.includes(subcategory)) {
-        return prev.filter(s => s !== subcategory);
-      }
-      return [...prev, subcategory];
-    });
-  };
-
-  const handleAddToCart = async (productId, productName) => {
-    setAddingToCart(productId);
-    try {
-      const result = await addToCart(productId, 1);
-      if (result.success) {
-        showToast(`${productName} added to cart!`, 'success');
-      } else {
-        showToast(result.error || 'Failed to add to cart', 'error');
-      }
-    } catch (error) {
-      console.error('Error adding to cart:', error);
-      showToast('Failed to add to cart', 'error');
-    } finally {
-      setAddingToCart(null);
-    }
-  };
-
-  const clearFilters = () => {
+  const handleBackToCategories = () => {
     setSelectedCategory('');
-    setSelectedSubcategories([]);
-    setPriceRange({ min: '', max: '' });
     setSearchParams({});
+  };
+
+  const handleAddToCart = async (product) => {
+    setAddingToCart(product.product_id);
+    const result = await addToCart(product.product_id, 1);
+    if (result.success) showToast(`${product.product_name} added!`, 'success');
+    setAddingToCart(null);
   };
 
   return (
     <div className="shop-page">
-      <div className="shop-header">
-        <Link to="/" className="back-link">← Back</Link>
-        <div className="shop-header-content">
-          {selectedCategory ? (
-            <>
-              <h1>Shop {selectedCategory}</h1>
-              <p>Browse our selection of {selectedCategory.toLowerCase()} products.</p>
-            </>
-          ) : (
-            <>
-              <h1>DALI Online</h1>
-              <p>The same hard-to-beat prices you love, now just a click away. Shop smart and save big on your everyday groceries with DALI Online</p>
-            </>
-          )}
-        </div>
-      </div>
-
       {!selectedCategory ? (
-        // Category Selection View
-        <div className="categories-view">
-          <h2>Popular Categories</h2>
-          <div className="category-grid">
-            {categories.map((category) => (
-              <div 
-                key={category} 
-                className="category-card"
-                onClick={() => handleCategorySelect(category)}
-              >
-                <img 
-                  src={`https://via.placeholder.com/200x150?text=${encodeURIComponent(category)}`} 
-                  alt={category}
-                  className="category-image"
-                />
-                <h4>{category}</h4>
-                <button className="btn btn-primary btn-small">Shop now</button>
-              </div>
-            ))}
+        /* --- LANDING PAGE VIEW --- */
+        <div className="landing-view">
+          <div className="landing-header">
+            <button onClick={() => window.history.back()} className="back-btn-pill">‹ Back</button>
+            <h1 className="dali-title">DALI Online</h1>
+            <p className="dali-subtitle">
+              The same hard-to-beat prices you love, now just a click away. Shop smart and <br/>
+              save big on your everyday groceries with DALI Online
+            </p>
           </div>
-          <button className="btn btn-outline load-more">
-            Load more categories
-          </button>
+
+          <section className="categories-section">
+            <h2 className="section-title">Popular Categories</h2>
+            <div className="category-grid">
+              {categories.map((cat) => (
+                <div key={cat} className="category-card" onClick={() => handleCategorySelect(cat)}>
+                  <div className="category-image-wrapper">
+                    <img src={`/images/categories/${cat.toLowerCase().replace(/\s/g, '-')}.png`} alt={cat} />
+                  </div>
+                  <h3>{cat}</h3>
+                  <button className="shop-now-btn">Shop now</button>
+                </div>
+              ))}
+            </div>
+            <button className="load-more-btn">Load more categories</button>
+          </section>
         </div>
       ) : (
-        // Products View
-        <div className="shop-content">
-          <aside className="shop-filters">
-            <div className="filter-header">
-              <h3>Filters</h3>
-              <button className="clear-filters" onClick={clearFilters}>Clear All</button>
+        /* --- PRODUCT SHOP VIEW --- */
+        <div className="shop-container">
+          <aside className="filters-sidebar">
+            <div className="filter-top">
+              <h2>Filters</h2>
+              <button className="clear-btn" onClick={handleBackToCategories}>Clear filter</button>
             </div>
-
-            {subcategories.length > 0 && (
-              <div className="filter-section">
-                <h4>Subcategories</h4>
-                {subcategories.map((sub) => (
-                  <label key={sub} className="checkbox-label">
-                    <input
-                      type="checkbox"
-                      checked={selectedSubcategories.includes(sub)}
-                      onChange={() => handleSubcategoryToggle(sub)}
-                    />
-                    {sub}
-                  </label>
-                ))}
+            
+            <div className="filter-group">
+              <label className="filter-label">CATEGORY</label>
+              <div className="filter-item">
+                <input type="checkbox" checked={true} readOnly />
+                <span>{selectedCategory}</span>
               </div>
-            )}
-
-            <div className="filter-section">
-              <h4>Price</h4>
-              <div className="price-inputs">
-                <input
-                  type="number"
-                  placeholder="Min"
-                  value={priceRange.min}
-                  onChange={(e) => setPriceRange({ ...priceRange, min: e.target.value })}
-                />
-                <span>—</span>
-                <input
-                  type="number"
-                  placeholder="Max"
-                  value={priceRange.max}
-                  onChange={(e) => setPriceRange({ ...priceRange, max: e.target.value })}
-                />
-              </div>
+              {subcategories.map(sub => (
+                <div key={sub} className="filter-item sub">
+                  <input type="checkbox" />
+                  <span>{sub}</span>
+                </div>
+              ))}
             </div>
           </aside>
 
-          <main className="shop-products">
-            <div className="products-header">
-              <div className="sort-select">
-                <label>Sort by:</label>
-                <select value={sortBy} onChange={(e) => setSortBy(e.target.value)}>
-                  <option value="popular">Popular</option>
-                  <option value="price-low">Price: Low to High</option>
-                  <option value="price-high">Price: High to Low</option>
-                  <option value="name">Name</option>
-                </select>
+          <main className="shop-main">
+            {/* Purple Search Banner */}
+            <div className="search-banner">
+              <div className="search-input-wrapper">
+                <span className="search-icon">🔍</span>
+                <input 
+                  type="text" 
+                  placeholder="Search" 
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                />
               </div>
-              <span className="product-count">Showing {products.length} products</span>
             </div>
 
-            {loading ? (
-              <div className="loading">Loading products...</div>
-            ) : (
-              <div className="products-grid">
-                {products.map((product) => (
-                  <div key={product.product_id} className="product-card">
-                    <img
-                      src={product.image ? `/images/products/${product.image}` : `/images/products/default.png`}
-                      alt={product.product_name}
-                      className="product-image"
-                    />
-                    <h4 className="product-name">{product.product_name}</h4>
-                    <p className="product-price">₱ {parseFloat(product.product_price).toFixed(0)}</p>
-                    <button
-                      className={`btn btn-primary btn-small ${product.product_quantity <= 0 ? 'out-of-stock' : ''}`}
-                      onClick={() => handleAddToCart(product.product_id, product.product_name)}
-                      disabled={product.product_quantity <= 0 || addingToCart === product.product_id}
-                    >
-                      {product.product_quantity <= 0 
-                        ? 'Out of Stock' 
-                        : addingToCart === product.product_id 
-                          ? 'Adding...' 
-                          : 'Add to Cart'}
-                    </button>
-                  </div>
-                ))}
-              </div>
-            )}
-
-            {products.length > 0 && (
-              <button className="btn btn-primary load-more-products">
-                Load more products
-              </button>
-            )}
+            <div className="product-results">
+              {loading ? (
+                <p>Loading...</p>
+              ) : (
+                <div className="products-grid">
+                  {products.map((product) => (
+                    <div key={product.product_id} className="product-card-item">
+                      <div className="product-img-box">
+                         <img src={product.image || '/default-prod.png'} alt={product.product_name} />
+                      </div>
+                      <div className="product-info">
+                        <span className="category-tag">{selectedCategory.toUpperCase()}</span>
+                        <h4>{product.product_name}</h4>
+                        <p className="price">₱ {parseFloat(product.product_price).toFixed(2)}</p>
+                        <button 
+                          className="add-btn"
+                          onClick={() => handleAddToCart(product)}
+                        >
+                          {addingToCart === product.product_id ? '...' : 'Add to Cart'}
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
           </main>
         </div>
       )}

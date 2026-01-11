@@ -54,11 +54,7 @@ const ProductCard = ({ product, availableToAdd = null }) => {
         </div>
       </Link>
       <div className="product-card-actions">
-        {isSuperAdmin && (
-          <div style={{ padding: '0 12px 8px 12px' }}>
-            <button className="edit-price-btn" onClick={() => setIsModalOpen(true)}>Edit Price</button>
-          </div>
-        )}
+        
         <form onSubmit={handleAddToCart}>
           {!isOutOfStock && !allInCart ? (
             <div className="product-card-quantity-form">

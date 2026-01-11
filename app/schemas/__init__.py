@@ -299,3 +299,58 @@ class AdminLogin(BaseModel):
 class LoginRequest(BaseModel):
     email: EmailStr
     password: str
+
+
+# Review Schemas
+class ReviewImageResponse(BaseModel):
+    image_id: int
+    image_url: str
+    created_at: datetime
+    
+    class Config:
+        from_attributes = True
+
+
+class ReviewCreate(BaseModel):
+    order_item_id: int
+    rating: int = Field(..., ge=1, le=5)
+    comment: Optional[str] = None
+    is_anonymous: bool = False
+
+
+class ReviewUpdate(BaseModel):
+    rating: Optional[int] = Field(None, ge=1, le=5)
+    comment: Optional[str] = None
+    is_anonymous: Optional[bool] = None
+
+
+class ReviewerInfo(BaseModel):
+    first_name: Optional[str] = None
+    last_name: Optional[str] = None
+    
+    class Config:
+        from_attributes = True
+
+
+class ReviewResponse(BaseModel):
+    review_id: int
+    product_id: int
+    account_id: int
+    order_id: int
+    order_item_id: int
+    rating: int
+    comment: Optional[str] = None
+    is_anonymous: bool
+    created_at: datetime
+    updated_at: datetime
+    reviewer_name: Optional[str] = None
+    images: List[ReviewImageResponse] = []
+    
+    class Config:
+        from_attributes = True
+
+
+class ProductReviewSummary(BaseModel):
+    average_rating: float
+    total_reviews: int
+    rating_distribution: dict  # {1: count, 2: count, ...}

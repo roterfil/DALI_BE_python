@@ -3,6 +3,7 @@ import { useParams } from 'react-router-dom';
 import { productService } from '../services';
 import { useCart } from '../context/CartContext';
 import { useToast } from '../components/Toast';
+import { ReviewList } from '../components';
 
 const ProductDetail = () => {
   const { id } = useParams();
@@ -143,6 +144,9 @@ const ProductDetail = () => {
           <h3>Description</h3>
           <p>{product.product_description || 'No description available.'}</p>
         </div>
+
+        {/* Customer Reviews Section */}
+        <ReviewList productId={product.product_id} />
       </div>
     </main>
   );
