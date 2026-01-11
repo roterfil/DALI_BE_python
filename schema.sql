@@ -1,4 +1,5 @@
 -- Drop tables in order of dependency to avoid foreign key constraints errors.
+DROP TABLE IF EXISTS audit_logs CASCADE;
 DROP TABLE IF EXISTS review_images CASCADE;
 DROP TABLE IF EXISTS reviews CASCADE;
 DROP TABLE IF EXISTS order_history CASCADE;
@@ -65,13 +66,15 @@ CREATE TABLE accounts (
                           profile_picture     VARCHAR(255),
                           reset_password_token VARCHAR(255),
                           is_email_verified   BOOLEAN DEFAULT FALSE,
-                          email_verification_token VARCHAR(255)
+                          email_verification_token VARCHAR(255),
+                          is_super_admin      BOOLEAN DEFAULT FALSE
 );
 
 CREATE TABLE admin_accounts (
                                 admin_id      SERIAL PRIMARY KEY,
                                 account_email   VARCHAR(255) UNIQUE NOT NULL,
-                                password_hash   VARCHAR(255) NOT NULL
+                                password_hash   VARCHAR(255) NOT NULL,
+                                is_super_admin  BOOLEAN DEFAULT FALSE
 );
 
 CREATE TABLE addresses (
@@ -152,4 +155,15 @@ CREATE TABLE review_images (
                                review_id       INTEGER NOT NULL REFERENCES reviews(review_id) ON DELETE CASCADE,
                                image_url       VARCHAR(512) NOT NULL,
                                created_at      TIMESTAMP WITHOUT TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Audit Logs for tracking admin actions
+CREATE TABLE audit_logs (
+                            log_id          SERIAL PRIMARY KEY,
+                            actor_email     VARCHAR(255) NOT NULL,
+                            action          VARCHAR(255) NOT NULL,
+                            entity_type     VARCHAR(255) NOT NULL,
+                            entity_id       INTEGER,
+                            details         TEXT,
+                            created_at      TIMESTAMP WITHOUT TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );

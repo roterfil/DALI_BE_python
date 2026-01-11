@@ -140,7 +140,7 @@ This includes:
 
 ## 🗄️ Database Overview
 
-The application uses **16 tables**:
+The application uses **17 tables**:
 
 | Category | Tables |
 |----------|--------|
@@ -151,6 +151,7 @@ The application uses **16 tables**:
 | Addresses | `addresses`, `provinces`, `cities`, `barangays` |
 | Stores | `stores` |
 | Reviews | `reviews`, `review_images` |
+| Audit | `audit_logs` |
 
 See [DOCUMENTATION.md](DOCUMENTATION.md) for complete schema details.
 

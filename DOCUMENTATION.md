@@ -62,6 +62,7 @@ User accounts for customers.
 | reset_password_token | VARCHAR(255) | | Token for password reset |
 | is_email_verified | BOOLEAN | DEFAULT FALSE | Email verification status |
 | email_verification_token | VARCHAR(255) | | Token for email verification |
+| is_super_admin | BOOLEAN | DEFAULT FALSE | Super admin privileges |
 
 #### 2. `admin_accounts`
 Admin users with dashboard access.
@@ -71,6 +72,7 @@ Admin users with dashboard access.
 | admin_id | SERIAL | PRIMARY KEY | Unique identifier |
 | account_email | VARCHAR(255) | UNIQUE, NOT NULL | Admin login email |
 | password_hash | VARCHAR(255) | NOT NULL | Bcrypt hashed password |
+| is_super_admin | BOOLEAN | DEFAULT FALSE | Super admin privileges |
 
 #### 3. `products`
 Product catalog.
@@ -222,6 +224,19 @@ Philippine location hierarchy.
 | city_id | INTEGER | FK → cities, NOT NULL |
 | barangay_name | VARCHAR(255) | NOT NULL |
 | | | UNIQUE(city_id, barangay_name) |
+
+#### 14. `audit_logs`
+Audit trail for admin actions.
+
+| Column | Type | Constraints | Description |
+|--------|------|-------------|-------------|
+| log_id | SERIAL | PRIMARY KEY | Unique identifier |
+| actor_email | VARCHAR(255) | NOT NULL | Admin who performed action |
+| action | VARCHAR(255) | NOT NULL | Action type (CREATE, UPDATE, DELETE) |
+| entity_type | VARCHAR(255) | NOT NULL | Entity affected (order, product, etc.) |
+| entity_id | INTEGER | | ID of affected entity |
+| details | TEXT | | Additional details/context |
+| created_at | TIMESTAMP | DEFAULT NOW | When action occurred |
 
 ---
 
