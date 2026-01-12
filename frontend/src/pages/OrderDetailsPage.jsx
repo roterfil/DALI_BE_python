@@ -24,6 +24,10 @@ const OrderDetailsPage = () => {
     try {
       const response = await ordersAPI.getOrder(orderId);
       setOrder(response.data);
+      // Debug: log order object so we can inspect voucher fields in browser console
+      console.log('[OrderDetailsPage] fetched order:', response.data);
+      console.log('[OrderDetailsPage] voucher_code:', response.data.voucher_code);
+      console.log('[OrderDetailsPage] voucher_discount:', response.data.voucher_discount);
     } catch (error) {
       console.error('Error fetching order:', error);
     } finally {
@@ -79,6 +83,16 @@ const OrderDetailsPage = () => {
     );
   }
 
+  // Compute totals using available order fields so voucher discounts are reflected
+  const computedSubtotal = Number(order.subtotal || 0);
+  const computedShipping = Number(order.shipping_fee || 0);
+  const computedVoucher = Number(order.voucher_discount || 0);
+  const computedTotal = (computedSubtotal + computedShipping - computedVoucher).toFixed(2);
+
+  // Show debug JSON when ?debug=1 is present in URL (temporary, dev-only)
+  const params = new URLSearchParams(window.location.search);
+  const showDebug = params.get('debug') === '1';
+
   return (
     <div className="order-details-page">
       <div className="order-details-container">
@@ -99,6 +113,16 @@ const OrderDetailsPage = () => {
             {order.shipping_status.replace(/_/g, ' ')}
           </span>
         </div>
+
+        {/* Debug JSON (dev only) */}
+        {showDebug && (
+          <section className="order-section">
+            <h2>Debug — Fetched order JSON</h2>
+            <pre style={{ whiteSpace: 'pre-wrap', maxHeight: '240px', overflow: 'auto', background: '#f7f7f7', padding: '12px', borderRadius: '8px' }}>
+{JSON.stringify(order, null, 2)}
+            </pre>
+          </section>
+        )}
 
         <div className="order-content">
           <div className="order-main">
@@ -187,34 +211,42 @@ const OrderDetailsPage = () => {
               </div>
             </section>
 
-            {/* Order Summary */}
+            {/* Order Summary Section */}
             <section className="sidebar-section">
               <h3>Order Summary</h3>
+              
+              {/* 1. Subtotal (Original Price) */}
               <div className="summary-row">
                 <span>Subtotal</span>
-                <span>₱{(parseFloat(order.total_price) - 50 + parseFloat(order.voucher_discount || 0)).toFixed(2)}</span>
+                <span>₱{order.subtotal ? parseFloat(order.subtotal).toFixed(2) : (parseFloat(order.total_price) - parseFloat(order.shipping_fee || 0) + parseFloat(order.voucher_discount || 0)).toFixed(2)}</span>
               </div>
-              {order.voucher_code && order.voucher_discount > 0 && (
-                <div className="summary-row voucher-discount-row">
-                  <div className="voucher-summary-info">
-                    <span className="voucher-code-chip">{order.voucher_code}</span>
-                    <span className="voucher-label">Voucher Applied</span>
-                  </div>
-                  <span className="voucher-discount-amount">-₱{parseFloat(order.voucher_discount).toFixed(2)}</span>
+
+              {/* 2. Voucher (if applied) */}
+              {order.voucher_code && parseFloat(order.voucher_discount || 0) > 0 && (
+                <div className="summary-row voucher-discount-line voucher-discount-row">
+                  <span>Voucher ({order.voucher_code})</span>
+                  {/* Show the minus sign and the discount value */}
+                  <span className="discount-amount voucher-discount-amount">-₱{parseFloat(order.voucher_discount || 0).toFixed(2)}</span>
                 </div>
               )}
+
+              {/* 3. Shipping */}
               <div className="summary-row">
                 <span>Shipping</span>
-                <span>₱50.00</span>
+                <span>₱{order.shipping_fee ? parseFloat(order.shipping_fee).toFixed(2) : '0.00'}</span>
               </div>
+
+              <hr className="summary-divider" />
+
+              {/* 4. Final Total */}
               <div className="summary-total">
                 <span>Total</span>
-                <span>₱{parseFloat(order.total_price).toFixed(2)}</span>
+                <span className="final-total-amount">₱{computedTotal}</span>
               </div>
             </section>
 
             {/* Voucher Information Section */}
-            {order.voucher_code && order.voucher_discount > 0 && (
+            {order.voucher_code && (
               <section className="sidebar-section voucher-info-section">
                 <h3>💳 Voucher Applied</h3>
                 <div className="voucher-info-card">
@@ -224,7 +256,7 @@ const OrderDetailsPage = () => {
                   </div>
                   <div className="voucher-savings">
                     <span className="savings-label">You saved:</span>
-                    <span className="savings-amount">₱{parseFloat(order.voucher_discount).toFixed(2)}</span>
+                    <span className="savings-amount">{order.voucher_discount ? `₱${parseFloat(order.voucher_discount).toFixed(2)}` : '₱0.00'}</span>
                   </div>
                 </div>
               </section>

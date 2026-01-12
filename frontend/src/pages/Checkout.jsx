@@ -68,15 +68,17 @@ const Checkout = () => {
 
   // Voucher handlers
   const handleApplyVoucher = async (e) => {
-    e.preventDefault();
-    if (!voucherInput.trim()) {
+    if (e?.preventDefault) e.preventDefault();
+    const code = voucherInput.trim();
+    if (!code) {
       showToast('Please enter a voucher code', 'error');
       return;
     }
+    if (applyingVoucher) return;
 
     setApplyingVoucher(true);
     try {
-      const response = await cartService.applyVoucher(voucherInput.trim());
+      const response = await cartService.applyVoucher(code);
       showToast(`Voucher applied! Saved ₱${response.discount_amount.toFixed(2)}`, 'success');
       setVoucherInput('');
       await fetchCart();
@@ -85,6 +87,18 @@ const Checkout = () => {
       showToast(errorMessage, 'error');
     } finally {
       setApplyingVoucher(false);
+    }
+  };
+
+  const handleVoucherKeyDown = (e) => {
+    if (e.key === 'Enter') {
+      handleApplyVoucher();
+    }
+  };
+
+  const handleVoucherBlur = () => {
+    if (voucherInput.trim()) {
+      handleApplyVoucher();
     }
   };
 
@@ -540,49 +554,52 @@ const Checkout = () => {
               </div>
             </div>
 
-            {/* Voucher Section */}
+            {/* Voucher Section (matches payment option box) */}
             <div className="voucher-payment-section">
-              <div className="voucher-section-header">
-                <span className="voucher-icon">🎫</span>
-                <span>Have a voucher code?</span>
-              </div>
-              
-              {!voucherCode ? (
-                <div className="voucher-input-container">
-                  <div className="voucher-input-group">
-                    <input
-                      type="text"
-                      value={voucherInput}
-                      onChange={(e) => setVoucherInput(e.target.value)}
-                      placeholder="Enter voucher code"
-                      className="voucher-input-field"
-                    />
-                    <button
-                      onClick={handleApplyVoucher}
-                      disabled={applyingVoucher || !voucherInput.trim()}
-                      className="voucher-apply-btn"
-                    >
-                      {applyingVoucher ? 'Applying...' : 'Apply'}
-                    </button>
-                  </div>
-                </div>
-              ) : (
-                <div className="voucher-applied-container">
-                  <div className="voucher-success-card">
-                    <div className="voucher-success-info">
-                      <span className="voucher-code-badge">{voucherCode}</span>
-                      <span className="voucher-savings">You saved {formatPrice(voucherDiscount)}</span>
+              <div className={`voucher-option ${voucherCode ? 'applied' : ''}`}>
+                <div className="voucher-icon" style={{ width: '43px', height: '43px', fontSize: '22px', lineHeight: 1 }}>🎫</div>
+                <div className="voucher-content">
+                  <strong>Have a voucher code?</strong>
+
+                  {!voucherCode ? (
+                    <div className="voucher-inline">
+                      <input
+                        type="text"
+                        value={voucherInput}
+                        onChange={(e) => setVoucherInput(e.target.value)}
+                        placeholder="Enter voucher code"
+                        className="voucher-input-field"
+                        onKeyDown={handleVoucherKeyDown}
+                        onBlur={handleVoucherBlur}
+                      />
+                      <small className="voucher-hint">Press Enter to apply</small> 
+                      <button
+                        onClick={handleApplyVoucher}
+                        disabled={applyingVoucher || !voucherInput.trim()}
+                        className="voucher-apply-btn"
+                      >
+                        {applyingVoucher ? 'Applying...' : 'Apply'}
+                      </button>
                     </div>
-                    <button
-                      onClick={handleRemoveVoucher}
-                      className="voucher-remove-btn"
-                      title="Remove voucher"
-                    >
-                      ×
-                    </button>
-                  </div>
+                  ) : (
+                    <div className="voucher-applied-container">
+                      <div className="voucher-success-card">
+                        <div className="voucher-success-info">
+                          <span className="voucher-code-badge">{voucherCode}</span>
+                          <span className="voucher-savings">You saved {formatPrice(voucherDiscount)}</span>
+                        </div>
+                        <button
+                          onClick={handleRemoveVoucher}
+                          className="voucher-remove-btn"
+                          title="Remove voucher"
+                        >
+                          ×
+                        </button>
+                      </div>
+                    </div>
+                  )}
                 </div>
-              )}
+              </div>
             </div>
 
             <button

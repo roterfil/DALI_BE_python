@@ -344,12 +344,12 @@
   color: white;
   padding: 0.3rem 0.8rem;
   border-radius: 20px;
-  font-weight: 700;
-  font-size: 0.8rem;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
+  font-weight: 400; /* normal */
+  font-size: 0.9rem;
+  text-transform: none; /* preserve typed case */
+  letter-spacing: 0.2px;
   width: fit-content;
-  box-shadow: 0 2px 8px rgba(76, 175, 80, 0.3);
+  box-shadow: 0 2px 8px rgba(76, 175, 80, 0.12);
 }
 
 .voucher-label {
@@ -445,6 +445,32 @@
   font-weight: 800;
   font-size: 1.1rem;
   text-shadow: 0 1px 2px rgba(46, 125, 50, 0.1);
+}
+
+/* Styling the specific Voucher line in the summary */
+.voucher-discount-line {
+  color: #16a34a; /* Green to indicate applied voucher */
+  font-weight: 700;
+  margin-top: 4px;
+}
+
+.discount-amount {
+  font-weight: 800;
+  color: #16a34a;
+  text-shadow: 0 1px 0 rgba(22,163,74,0.08);
+}
+
+
+.summary-divider {
+  border: 0;
+  border-top: 1px solid #eee;
+  margin: 10px 0;
+}
+
+.final-total-amount {
+  color: #b21984; /* Your brand purple for the final total */
+  font-size: 1.2rem;
+  font-weight: 800;
 }
 
 /* Responsive */

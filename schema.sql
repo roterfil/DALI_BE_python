@@ -105,6 +105,8 @@ CREATE TABLE orders (
                         delivery_method         VARCHAR(255) NOT NULL,
                         payment_method          VARCHAR(255) NOT NULL,
                         total_price             NUMERIC(10, 2) NOT NULL,
+                        voucher_code            VARCHAR(50),
+                        voucher_discount        NUMERIC(10, 2) DEFAULT 0,
                         created_at              TIMESTAMP WITHOUT TIME ZONE DEFAULT CURRENT_TIMESTAMP,
                         updated_at              TIMESTAMP WITHOUT TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
@@ -129,3 +131,33 @@ CREATE TABLE order_history (
                                notes           VARCHAR(1024) NOT NULL,
                                event_timestamp TIMESTAMP WITHOUT TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
+
+CREATE TABLE vouchers (
+    voucher_code            VARCHAR(50) PRIMARY KEY,
+    description             VARCHAR(255) NOT NULL,
+    discount_type           VARCHAR(50) NOT NULL CHECK (discount_type IN ('percentage', 'fixed_amount')),
+    discount_value          NUMERIC(10, 2) NOT NULL,
+    min_purchase_amount     NUMERIC(10, 2) DEFAULT 0,
+    max_discount_amount     NUMERIC(10, 2),
+    valid_from              TIMESTAMP WITHOUT TIME ZONE NOT NULL,
+    valid_until             TIMESTAMP WITHOUT TIME ZONE NOT NULL,
+    usage_limit             INTEGER,
+    current_usage_count     INTEGER DEFAULT 0,
+    is_active               BOOLEAN DEFAULT TRUE,
+    created_at              TIMESTAMP WITHOUT TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    updated_at              TIMESTAMP WITHOUT TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE voucher_usage (
+    usage_id                SERIAL PRIMARY KEY,
+    voucher_code            VARCHAR(50) NOT NULL REFERENCES vouchers(voucher_code) ON DELETE CASCADE,
+    account_id              INTEGER NOT NULL REFERENCES accounts(account_id) ON DELETE CASCADE,
+    used_at                 TIMESTAMP WITHOUT TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT unique_user_voucher UNIQUE (voucher_code, account_id)
+);
+
+CREATE INDEX IF NOT EXISTS idx_voucher_usage_code ON voucher_usage(voucher_code);
+CREATE INDEX IF NOT EXISTS idx_orders_voucher ON orders(voucher_code);
+
+ALTER TABLE orders
+ADD CONSTRAINT fk_orders_voucher_code FOREIGN KEY (voucher_code) REFERENCES vouchers(voucher_code) ON DELETE SET NULL;
