@@ -1,10 +1,13 @@
 """
 Email service for sending emails (password reset, order confirmation, etc.).
 """
+import logging
 import smtplib
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 from app.core.config import settings
+
+logger = logging.getLogger(__name__)
 
 
 class EmailService:
@@ -65,9 +68,7 @@ class EmailService:
     def _send_email(to_email: str, subject: str, html_body: str):
         """Send an HTML email."""
         if not settings.SMTP_USERNAME or not settings.SMTP_PASSWORD:
-            print(f"Email service not configured. Would send email to {to_email}")
-            print(f"Subject: {subject}")
-            print(f"Body: {html_body}")
+            logger.warning(f"Email service not configured. Would send email to {to_email} with subject: {subject}")
             return
         
         try:
@@ -87,6 +88,6 @@ class EmailService:
                 server.login(settings.SMTP_USERNAME, settings.SMTP_PASSWORD)
                 server.send_message(msg)
                 
-            print(f"Email sent successfully to {to_email}")
+            logger.info(f"Email sent successfully to {to_email}")
         except Exception as e:
-            print(f"Failed to send email: {str(e)}")
+            logger.error(f"Failed to send email to {to_email}: {str(e)}")

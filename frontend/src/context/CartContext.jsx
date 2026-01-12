@@ -117,13 +117,7 @@ export const CartProvider = ({ children }) => {
         setSubtotal(subtotalCalc);
         setTotal(subtotalCalc);
       } else {
-        console.log('[CartContext] Fetching cart from server...');
         const response = await cartService.getCart();
-        console.log('[CartContext] Server response:', response);
-        console.log('[CartContext] Voucher from response:', {
-          voucher_code: response.voucher_code,
-          voucher_discount: response.voucher_discount
-        });
         setCartItems(response.items || []);
         setSubtotal(response.subtotal || 0);
         setTotal(response.total || 0);
@@ -139,11 +133,6 @@ export const CartProvider = ({ children }) => {
         } else {
           localStorage.removeItem('applied_voucher');
         }
-        
-        console.log('[CartContext] State updated with voucher:', {
-          voucherCode: vCode,
-          voucherDiscount: vDiscount
-        });
       }
     } catch (error) {
       console.error('Error fetching cart:', error);

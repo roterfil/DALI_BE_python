@@ -24,7 +24,7 @@ const ProductCard = ({ product, availableToAdd = null }) => {
 
   const formatPrice = (price) => {
     const numericPrice = Number(price);
-    return `₱${price.toLocaleString('en-PH', {
+    return `₱${numericPrice.toLocaleString('en-PH', {
       minimumFractionDigits: 2,
       maximumFractionDigits: 2,
     })}`;

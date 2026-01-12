@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { ordersAPI, addressesAPI } from '../api/api';
+import { ConfirmModal } from '../components';
 import './AccountPage.css';
 
 const AccountPage = () => {
@@ -12,6 +13,7 @@ const AccountPage = () => {
   const [addresses, setAddresses] = useState([]);
   const [loading, setLoading] = useState(false);
   const [editMode, setEditMode] = useState(false);
+  const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
   const [profileData, setProfileData] = useState({
     first_name: user?.first_name || '',
     last_name: user?.last_name || '',
@@ -65,7 +67,12 @@ const AccountPage = () => {
 
   const handleLogout = async () => {
     await logout();
+    setShowLogoutConfirm(false);
     navigate('/');
+  };
+
+  const handleLogoutClick = () => {
+    setShowLogoutConfirm(true);
   };
 
   const handleProfileSave = async () => {
@@ -134,7 +141,7 @@ const AccountPage = () => {
               </svg>
               Addresses
             </button>
-            <button onClick={handleLogout} className="logout-btn">
+            <button onClick={handleLogoutClick} className="logout-btn">
               <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                 <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
                 <polyline points="16 17 21 12 16 7"></polyline>
@@ -281,6 +288,18 @@ const AccountPage = () => {
           )}
         </div>
       </div>
+
+      {/* Logout Confirmation Modal */}
+      <ConfirmModal
+        isOpen={showLogoutConfirm}
+        onClose={() => setShowLogoutConfirm(false)}
+        onConfirm={handleLogout}
+        title="Confirm Logout"
+        message="Are you sure you want to log out of your account?"
+        confirmText="Logout"
+        cancelText="Cancel"
+        confirmStyle="danger"
+      />
     </div>
   );
 };

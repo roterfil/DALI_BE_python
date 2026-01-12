@@ -5,7 +5,7 @@ import cartService from '../services/cartService';
 import { useCart } from '../context/CartContext';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../components/Toast';
-import { AddressForm } from '../components';
+import { AddressForm, ConfirmModal } from '../components';
 
 const Checkout = () => {
   const navigate = useNavigate();
@@ -27,6 +27,7 @@ const Checkout = () => {
   const [error, setError] = useState('');
   const [addingAddress, setAddingAddress] = useState(false);
   const [storeSearch, setStoreSearch] = useState('');
+  const [showOrderConfirm, setShowOrderConfirm] = useState(false);
 
   // Voucher state
   const [voucherInput, setVoucherInput] = useState('');
@@ -179,7 +180,12 @@ const Checkout = () => {
     calculateShippingFee(method);
   };
 
+  const handlePlaceOrderClick = () => {
+    setShowOrderConfirm(true);
+  };
+
   const handlePaymentSubmit = async () => {
+    setShowOrderConfirm(false);
     try {
       setLoading(true);
       const response = await checkoutService.placeOrder(paymentMethod);
@@ -603,7 +609,7 @@ const Checkout = () => {
             </div>
 
             <button
-              onClick={handlePaymentSubmit}
+              onClick={handlePlaceOrderClick}
               className="btn btn-primary checkout-btn"
               disabled={loading}
             >
@@ -651,6 +657,19 @@ const Checkout = () => {
           <span id="total-display">{formatPrice(total)}</span>
         </div>
       </div>
+
+      {/* Order Confirmation Modal */}
+      <ConfirmModal
+        isOpen={showOrderConfirm}
+        onClose={() => setShowOrderConfirm(false)}
+        onConfirm={handlePaymentSubmit}
+        title="Confirm Order"
+        message={`You are about to place an order for ${formatPrice(total)}. Do you want to proceed?`}
+        confirmText="Confirm Order"
+        cancelText="Review Order"
+        confirmStyle="primary"
+        loading={loading}
+      />
     </div>
   );
 };

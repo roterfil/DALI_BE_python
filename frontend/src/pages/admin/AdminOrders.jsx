@@ -43,7 +43,7 @@ const AdminOrders = () => {
   };
 
   const formatPrice = (price) => {
-    return `₱${price.toLocaleString('en-PH', {
+    return `₱${Number(price).toLocaleString('en-PH', {
       minimumFractionDigits: 2,
       maximumFractionDigits: 2,
     })}`;

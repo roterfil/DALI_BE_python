@@ -50,6 +50,8 @@ CREATE TABLE products (
                           product_name        VARCHAR(255) NOT NULL,
                           product_description TEXT,
                           product_price       NUMERIC(10, 2) NOT NULL, -- Use NUMERIC for currency
+                          product_discount_price NUMERIC(10, 2),       -- Sale/discount price
+                          is_on_sale          BOOLEAN DEFAULT FALSE,  -- Whether product is currently on sale
                           product_category    VARCHAR(255),
                           product_subcategory VARCHAR(255),
                           product_quantity    INTEGER NOT NULL,
@@ -120,7 +122,8 @@ CREATE TABLE order_items (
                              order_item_id SERIAL PRIMARY KEY,
                              order_id      INTEGER NOT NULL REFERENCES orders(order_id) ON DELETE CASCADE,
                              product_id    INTEGER NOT NULL REFERENCES products(product_id),
-                             quantity      INTEGER NOT NULL
+                             quantity      INTEGER NOT NULL,
+                             unit_price    NUMERIC(10, 2) NOT NULL  -- Price at time of purchase (may be discounted)
 );
 
 CREATE TABLE order_pickups (

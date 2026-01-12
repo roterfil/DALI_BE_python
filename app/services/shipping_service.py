@@ -1,10 +1,13 @@
 """
 Shipping service for calculating shipping fees.
 """
+import logging
 from decimal import Decimal
 from geopy.distance import geodesic
 from app.models import Address
 from app.core.config import settings
+
+logger = logging.getLogger(__name__)
 
 
 class ShippingService:
@@ -25,7 +28,7 @@ class ShippingService:
         # Check if address has coordinates
         if not address.latitude or not address.longitude:
             # Return base rate if no coordinates (shouldn't happen with new validation)
-            print(f"Warning: Address {address.address_id} has no coordinates, using base rate")
+            logger.warning(f"Address {address.address_id} has no coordinates, using base rate")
             return ShippingService.BASE_RATE
         
         # Calculate distance from warehouse to customer

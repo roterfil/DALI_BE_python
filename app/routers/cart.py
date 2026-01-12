@@ -1,6 +1,7 @@
 """
 Cart router - handles shopping cart operations (JSON API).
 """
+import logging
 from fastapi import APIRouter, Request, Depends, HTTPException
 from sqlalchemy.orm import Session
 from typing import List, Optional
@@ -11,6 +12,7 @@ from app.services.cart_service import CartService
 from app.models import Product, Voucher, VoucherUsage
 from pydantic import BaseModel
 
+logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/api/cart", tags=["cart"])
 
 
@@ -99,8 +101,6 @@ async def get_cart(
         
         # Check for applied voucher and validate it
         applied_voucher = request.session.get("applied_voucher")
-        print(f"[GET /cart] Session applied_voucher: {applied_voucher}")
-        print(f"[GET /cart] Session keys: {list(request.session.keys())}")
         voucher_code = None
         voucher_discount = 0.0
         total = subtotal
@@ -149,9 +149,7 @@ async def get_cart(
             voucher_discount=voucher_discount
         )
     except Exception as e:
-        print(f"Cart error: {str(e)}")
-        import traceback
-        traceback.print_exc()
+        logger.exception(f"Cart error: {str(e)}")
         raise HTTPException(status_code=500, detail=f"Error loading cart: {str(e)}")
 
 

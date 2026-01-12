@@ -100,7 +100,7 @@ const AdminProductDetail = () => {
   };
 
   const formatPrice = (price) => {
-    return `₱${price.toLocaleString('en-PH', {
+    return `₱${Number(price).toLocaleString('en-PH', {
       minimumFractionDigits: 2,
       maximumFractionDigits: 2,
     })}`;
@@ -351,10 +351,6 @@ const AdminProductDetail = () => {
           }}
         />
       </div>
-            setTimeout(() => setSuccess(''), 3000);
-          }}
-        />
-      )}
 
       {/* Form Group: Description */}
       <div style={{ display: 'flex', flexDirection: 'column' }}>
@@ -455,7 +451,6 @@ const AdminProductDetail = () => {
             style={{ display: 'none' }} 
           />
         </div>
-<<<<<<< HEAD
       </div>
 
 

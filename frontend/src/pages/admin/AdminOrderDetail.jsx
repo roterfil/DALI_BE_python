@@ -60,7 +60,7 @@ const AdminOrderDetail = () => {
   };
 
   const formatPrice = (price) => {
-    return `₱${price.toLocaleString('en-PH', {
+    return `₱${Number(price).toLocaleString('en-PH', {
       minimumFractionDigits: 2,
       maximumFractionDigits: 2,
     })}`;
@@ -114,7 +114,10 @@ const AdminOrderDetail = () => {
 
   const subtotal =
     order.order_items?.reduce(
-      (sum, item) => sum + parseFloat(item.product.product_price) * item.quantity,
+      (sum, item) => {
+        const price = item.unit_price ?? item.product.product_price;
+        return sum + parseFloat(price) * item.quantity;
+      },
       0
     ) || 0;
   const shippingFee = order.total_price - subtotal;
@@ -270,9 +273,22 @@ const AdminOrderDetail = () => {
                   />
                   <span>{item.product.product_name}</span>
                 </div>
-                <div>{formatPrice(item.product.product_price)}</div>
+                <div>
+                  {item.unit_price && parseFloat(item.unit_price) < parseFloat(item.product.product_price) ? (
+                    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start' }}>
+                      <span style={{ textDecoration: 'line-through', color: '#999', fontSize: '0.85em' }}>
+                        {formatPrice(item.product.product_price)}
+                      </span>
+                      <span style={{ color: '#a1127c', fontWeight: '600' }}>
+                        {formatPrice(item.unit_price)}
+                      </span>
+                    </div>
+                  ) : (
+                    formatPrice(item.unit_price ?? item.product.product_price)
+                  )}
+                </div>
                 <div>{item.quantity}</div>
-                <div>{formatPrice(parseFloat(item.product.product_price) * item.quantity)}</div>
+                <div>{formatPrice(parseFloat(item.unit_price ?? item.product.product_price) * item.quantity)}</div>
               </div>
             ))}
           </div>

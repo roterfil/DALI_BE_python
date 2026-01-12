@@ -113,6 +113,7 @@ async def admin_logout(request: Request):
 async def get_inventory(
     search: Optional[str] = Query(None),
     category: Optional[str] = Query(None),
+    subcategory: Optional[str] = Query(None),
     db: Session = Depends(get_db),
     admin = Depends(get_current_admin)
 ):
@@ -127,45 +128,51 @@ async def get_inventory(
     is_super = getattr(admin, 'is_super_admin', False)
     
     logger.info(f"Inventory request - Admin: {admin.account_email}, Store: {store_id}, Is Super: {is_super}")
+    logger.info(f"Filters - search: {search}, category: {category}, subcategory: {subcategory}")
     
     if is_super:
         # Super admin sees all products with minimum quantity across all stores
         # This way low stock filter will show products that are low in ANY store
+        
+        # Start with base product query and apply filters FIRST
+        base_query = db.query(Product)
+        
+        if search:
+            base_query = base_query.filter(Product.product_name.ilike(f"%{search}%"))
+        if category:
+            base_query = base_query.filter(Product.product_category == category)
+        if subcategory:
+            base_query = base_query.filter(Product.product_subcategory == subcategory)
+        
+        # Create subquery for filtered products
+        filtered_products = base_query.subquery()
+        
+        # Now join with inventory and group
         query = db.query(
-            Product.product_id,
-            Product.product_name,
-            Product.product_description,
-            Product.product_price,
-            Product.product_category,
-            Product.product_subcategory,
-            func.min(StoreInventory.quantity).label('product_quantity'),  # Minimum qty across stores
-            Product.image,
-            Product.is_on_sale,
-            Product.product_discount_price
+            filtered_products.c.product_id,
+            filtered_products.c.product_name,
+            filtered_products.c.product_description,
+            filtered_products.c.product_price,
+            filtered_products.c.product_category,
+            filtered_products.c.product_subcategory,
+            func.min(StoreInventory.quantity).label('product_quantity'),
+            filtered_products.c.image,
+            filtered_products.c.is_on_sale,
+            filtered_products.c.product_discount_price
         ).outerjoin(
             StoreInventory,
-            Product.product_id == StoreInventory.product_id
+            filtered_products.c.product_id == StoreInventory.product_id
         ).group_by(
-            Product.product_id,
-            Product.product_name,
-            Product.product_description,
-            Product.product_price,
-            Product.product_category,
-            Product.product_subcategory,
-            Product.image,
-            Product.is_on_sale,
-            Product.product_discount_price
+            filtered_products.c.product_id,
+            filtered_products.c.product_name,
+            filtered_products.c.product_description,
+            filtered_products.c.product_price,
+            filtered_products.c.product_category,
+            filtered_products.c.product_subcategory,
+            filtered_products.c.image,
+            filtered_products.c.is_on_sale,
+            filtered_products.c.product_discount_price
         )
-        
-        if search and category:
-            query = query.filter(
-                Product.product_name.ilike(f"%{search}%"),
-                Product.product_category == category
-            )
-        elif search:
-            query = query.filter(Product.product_name.ilike(f"%{search}%"))
-        elif category:
-            query = query.filter(Product.product_category == category)
         
         results = query.all()
         
@@ -210,15 +217,17 @@ async def get_inventory(
             StoreInventory.store_id == store_id
         )
         
-        if search and category:
-            query = query.filter(
-                Product.product_name.ilike(f"%{search}%"),
-                Product.product_category == category
-            )
-        elif search:
+        # Apply search filter
+        if search:
             query = query.filter(Product.product_name.ilike(f"%{search}%"))
-        elif category:
+        
+        # Apply category filter
+        if category:
             query = query.filter(Product.product_category == category)
+        
+        # Apply subcategory filter
+        if subcategory:
+            query = query.filter(Product.product_subcategory == subcategory)
         
         results = query.all()
         

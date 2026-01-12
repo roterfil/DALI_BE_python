@@ -2,24 +2,22 @@ import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useCart } from '../context/CartContext';
+import ConfirmModal from './ConfirmModal';
 
 const Header = () => {
   const { isAuthenticated, logout } = useAuth();
   const { cartCount } = useCart();
   
   // State to track if we are in the "confirmation" phase
-  const [showConfirm, setShowConfirm] = useState(false);
+  const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
 
   const handleLogout = async () => {
     await logout();
-    setShowConfirm(false); // Reset state after logging out
-  };
-
-  const cancelLogout = () => {
-    setShowConfirm(false); // Go back to showing the "Logout" button
+    setShowLogoutConfirm(false);
   };
 
   return (
+    <>
     <header className="header">
       <div className="container">
         <div className="logo">
@@ -44,40 +42,31 @@ const Header = () => {
               <Link to="/profile">Profile</Link>
               
               <div className="logout-container" style={{ display: 'inline-block', marginLeft: '10px' }}>
-                {!showConfirm ? (
-                  /* Initial Logout Button */
-                  <button 
-                    onClick={() => setShowConfirm(true)} 
-                    className="logout-button-linkstyle"
-                  >
-                    Logout
-                  </button>
-                ) : (
-                  /* Confirmation State */
-                  <span style={{ fontSize: '0.9rem' }}>
-                    Confirm? 
-                    <button 
-                      onClick={handleLogout} 
-                      className="logout-button-linkstyle" 
-                      style={{ color: 'green', fontWeight: 'bold', marginLeft: '8px' }}
-                    >
-                      Yes
-                    </button>
-                    <button 
-                      onClick={cancelLogout} 
-                      className="logout-button-linkstyle" 
-                      style={{ color: 'red', fontWeight: 'bold', marginLeft: '8px' }}
-                    >
-                      No
-                    </button>
-                  </span>
-                )}
+                <button 
+                  onClick={() => setShowLogoutConfirm(true)} 
+                  className="logout-button-linkstyle"
+                >
+                  Logout
+                </button>
               </div>
             </>
           )}
         </div>
       </div>
     </header>
+
+    {/* Logout Confirmation Modal */}
+    <ConfirmModal
+      isOpen={showLogoutConfirm}
+      onClose={() => setShowLogoutConfirm(false)}
+      onConfirm={handleLogout}
+      title="Confirm Logout"
+      message="Are you sure you want to log out of your account?"
+      confirmText="Logout"
+      cancelText="Cancel"
+      confirmStyle="danger"
+    />
+    </>
   );
 };
 

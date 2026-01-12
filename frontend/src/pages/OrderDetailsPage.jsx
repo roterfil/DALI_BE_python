@@ -24,10 +24,6 @@ const OrderDetailsPage = () => {
     try {
       const response = await ordersAPI.getOrder(orderId);
       setOrder(response.data);
-      // Debug: log order object so we can inspect voucher fields in browser console
-      console.log('[OrderDetailsPage] fetched order:', response.data);
-      console.log('[OrderDetailsPage] voucher_code:', response.data.voucher_code);
-      console.log('[OrderDetailsPage] voucher_discount:', response.data.voucher_discount);
     } catch (error) {
       console.error('Error fetching order:', error);
     } finally {

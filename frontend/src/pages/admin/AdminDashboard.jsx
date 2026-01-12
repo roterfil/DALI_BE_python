@@ -39,8 +39,6 @@ const AdminDashboard = () => {
   const fetchStats = async () => {
     try {
       const response = await adminAPI.getStats();
-      console.log('Stats API Response:', response);
-      console.log('Stats Data:', response.data);
       setStats(response.data);
     } catch (error) {
       console.error('Stats Error:', error);

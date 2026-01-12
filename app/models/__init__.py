@@ -294,6 +294,7 @@ class OrderItem(Base):
     order_id = Column(Integer, ForeignKey("orders.order_id", ondelete="CASCADE"), nullable=False)
     product_id = Column(Integer, ForeignKey("products.product_id"), nullable=False)
     quantity = Column(Integer, nullable=False)
+    unit_price = Column(Numeric(10, 2), nullable=False)  # Price at time of purchase
     
     # Relationships
     order = relationship("Order", back_populates="order_items")
@@ -303,7 +304,7 @@ class OrderItem(Base):
     @property
     def subtotal(self):
         """Calculate subtotal for this order item."""
-        return float(self.product.product_price) * self.quantity
+        return float(self.unit_price) * self.quantity
 
 
 # Order Pickup Model

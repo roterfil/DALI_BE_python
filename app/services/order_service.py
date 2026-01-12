@@ -145,11 +145,18 @@ class OrderService:
             if product.product_quantity < quantity:
                 raise ValueError(f"Insufficient stock for {product.product_name}")
             
-            # Create order item
+            # Determine the price at time of purchase (use discount price if on sale)
+            if product.is_on_sale and product.product_discount_price is not None:
+                unit_price = float(product.product_discount_price)
+            else:
+                unit_price = float(product.product_price)
+            
+            # Create order item with the actual price paid
             order_item = OrderItem(
                 order_id=order.order_id,
                 product_id=product.product_id,
-                quantity=quantity
+                quantity=quantity,
+                unit_price=unit_price
             )
             db.add(order_item)
             

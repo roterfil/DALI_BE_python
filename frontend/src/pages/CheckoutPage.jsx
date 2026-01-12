@@ -45,8 +45,6 @@ const CheckoutPage = () => {
   });
 
   useEffect(() => {
-    console.log('[CheckoutPage] Mount - Initializing...');
-    
     if (!user) {
       navigate('/login', { state: { from: { pathname: '/checkout' } } });
       return;
@@ -69,17 +67,6 @@ const CheckoutPage = () => {
     loadCartData();
   }, [user, navigate]);  // Run once on mount
   
-  // Log voucher state changes
-  useEffect(() => {
-    console.log('[CheckoutPage] Voucher state:', {
-      voucherCode,
-      voucherDiscount,
-      subtotal,
-      cartTotal,
-      cartDataLoaded
-    });
-  }, [voucherCode, voucherDiscount, subtotal, cartTotal, cartDataLoaded]);
-
   const fetchAddresses = async () => {
     try {
       const response = await addressesAPI.getAddresses();

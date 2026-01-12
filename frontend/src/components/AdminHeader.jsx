@@ -1,19 +1,21 @@
 import { useState } from 'react'; 
 import { Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import ConfirmModal from './ConfirmModal';
 
 const AdminHeader = () => {
   const { admin, adminLogout, isSuperAdmin } = useAuth();
   
   // State to track confirmation
-  const [showConfirm, setShowConfirm] = useState(false);
+  const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
 
   const handleLogout = async () => {
     await adminLogout();
-    setShowConfirm(false);
+    setShowLogoutConfirm(false);
   };
 
   return (
+    <>
     <header className="header admin-header">
       <div className="container">
         <div className="admin-header-left">
@@ -49,37 +51,30 @@ const AdminHeader = () => {
 
         
           <div className="logout-container" style={{ display: 'inline-block', marginLeft: '15px' }}>
-            {!showConfirm ? (
-              <button 
-                type="button" 
-                onClick={() => setShowConfirm(true)} 
-                className="logout-button-linkstyle"
-              >
-                Logout
-              </button>
-            ) : (
-              <span style={{ fontSize: '0.9rem' }}>
-                Confirm? 
-                <button 
-                  onClick={handleLogout} 
-                  className="logout-button-linkstyle" 
-                  style={{ color: 'green', fontWeight: 'bold', marginLeft: '10px' }}
-                >
-                  Yes
-                </button>
-                <button 
-                  onClick={() => setShowConfirm(false)} 
-                  className="logout-button-linkstyle" 
-                  style={{ color: 'red', fontWeight: 'bold', marginLeft: '10px' }}
-                >
-                  No
-                </button>
-              </span>
-            )}
+            <button 
+              type="button" 
+              onClick={() => setShowLogoutConfirm(true)} 
+              className="logout-button-linkstyle"
+            >
+              Logout
+            </button>
           </div>
         </div>
       </div>
     </header>
+
+    {/* Logout Confirmation Modal */}
+    <ConfirmModal
+      isOpen={showLogoutConfirm}
+      onClose={() => setShowLogoutConfirm(false)}
+      onConfirm={handleLogout}
+      title="Confirm Logout"
+      message="Are you sure you want to log out of the admin panel?"
+      confirmText="Logout"
+      cancelText="Cancel"
+      confirmStyle="danger"
+    />
+    </>
   );
 };
 

@@ -26,7 +26,8 @@ const EditDiscountModal = ({ product, open, onClose, onSaved }) => {
   };
 
   const formatPrice = (price) => {
-    return `₱${parseFloat(price).toLocaleString('en-PH', {
+    if (price === null || price === undefined) return '₱0.00';
+    return `₱${Number(price).toLocaleString('en-PH', {
       minimumFractionDigits: 2,
       maximumFractionDigits: 2,
     })}`;

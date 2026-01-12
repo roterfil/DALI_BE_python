@@ -75,18 +75,14 @@ const AdminInventory = () => {
       
       // Use admin inventory endpoint to get store-specific quantities
       const response = await adminService.getInventory(params);
-      console.log('Admin inventory response:', response);
       
       // Extract products from response (response.data for axios)
       let productList = response.data || response;
-      console.log('Product list before filters:', productList, 'Length:', productList?.length);
       
       if (stockFilter === 'out') {
         productList = productList.filter(p => p.product_quantity === 0);
-        console.log('After out-of-stock filter:', productList.length);
       } else if (stockFilter === 'low') {
         productList = productList.filter(p => p.product_quantity > 0 && p.product_quantity < 10);
-        console.log('After low-stock filter:', productList.length, 'Items:', productList.map(p => ({name: p.product_name, qty: p.product_quantity})));
       }
       
       // Apply sale status filter
@@ -96,7 +92,6 @@ const AdminInventory = () => {
         productList = productList.filter(p => !p.is_on_sale || p.product_discount_price == null);
       }
       
-      console.log('Final product list:', productList);
       setProducts(productList);
       if (productList.length === 0) {
         setErrorMessage('No products found');
@@ -139,7 +134,7 @@ const AdminInventory = () => {
   };
 
   const formatPrice = (price) => {
-    return `₱${price.toLocaleString('en-PH', {
+    return `₱${Number(price).toLocaleString('en-PH', {
       minimumFractionDigits: 2,
       maximumFractionDigits: 2,
     })}`;

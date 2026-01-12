@@ -216,10 +216,13 @@ class OrderItemBase(BaseModel):
 class OrderItemResponse(OrderItemBase):
     order_item_id: int
     product: ProductResponse
+    unit_price: Optional[Decimal] = None  # Price at time of purchase (may be discounted)
     
     @property
     def subtotal(self):
-        return float(self.product.product_price) * self.quantity
+        # Use unit_price if available, otherwise fall back to product price
+        price = float(self.unit_price) if self.unit_price is not None else float(self.product.product_price)
+        return price * self.quantity
     
     class Config:
         from_attributes = True

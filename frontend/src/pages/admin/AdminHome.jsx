@@ -31,12 +31,9 @@ const AdminHome = () => {
       
       // Fetch dashboard stats from backend API
       const statsResponse = await adminAPI.getStats();
-      console.log('AdminHome - Stats from API:', statsResponse);
-      console.log('AdminHome - Stats is axios response?', statsResponse.data !== undefined);
       
       // Extract the actual data from axios response
       const statsData = statsResponse.data || statsResponse;
-      console.log('AdminHome - Actual stats data:', statsData);
       
       // Fetch recent orders
       const ordersData = await adminAPI.getOrders();
@@ -47,7 +44,6 @@ const AdminHome = () => {
       
       // Fetch store-specific low stock products from backend
       const lowStockData = await adminAPI.getLowStockProducts();
-      console.log('Low stock products from API:', lowStockData);
       
       // Use stats from API
       setStats({
@@ -88,7 +84,8 @@ const AdminHome = () => {
   };
 
   const formatPrice = (price) => {
-    return `₱${parseFloat(price).toLocaleString('en-PH', {
+    if (price === null || price === undefined) return '₱0.00';
+    return `₱${Number(price).toLocaleString('en-PH', {
       minimumFractionDigits: 2,
       maximumFractionDigits: 2,
     })}`;
