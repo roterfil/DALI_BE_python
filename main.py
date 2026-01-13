@@ -20,7 +20,7 @@ from app.routers import (
     stores,
     locations,
     admin,
-    reviews
+    reviews,
 )
 
 # Create database tables

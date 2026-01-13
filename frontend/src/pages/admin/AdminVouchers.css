@@ -1,3 +1,7 @@
+.delete-btn:hover {
+    background: #dc2626;
+    color: #fff;
+}
 .admin-vouchers-container {
     padding: 2rem;
     max-width: 1400px;
@@ -123,13 +127,32 @@
     gap: 0.5rem;
 }
 
+
+
 .action-btn {
     background: none;
     border: none;
-    font-size: 1.25rem;
+    font-size: 0.85rem; /* smaller font */
     cursor: pointer;
-    padding: 0.25rem;
-    transition: transform 0.2s ease;
+    padding: 0.1rem 0.4rem; /* smaller padding */
+    transition: transform 0.2s ease, background 0.2s, color 0.2s;
+    border-radius: 4px;
+}
+
+.edit-btn:hover {
+    background: #16a34a;
+    color: #fff;
+}
+
+
+.deactivate-btn:hover {
+    background: #dc2626;
+    color: #fff;
+}
+
+.activate-btn:hover {
+    background: #16a34a;
+    color: #fff;
 }
 
 .action-btn:hover {

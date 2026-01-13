@@ -263,27 +263,30 @@ const AdminVouchers = () => {
                                     </td>
                                     <td>{getStatusBadge(voucher)}</td>
                                     <td className="actions-cell">
-                                        <button 
-                                            className="action-btn edit-btn"
-                                            onClick={() => handleEdit(voucher)}
-                                            title="Edit"
-                                        >
-                                            ✏️
-                                        </button>
-                                        <button 
-                                            className="action-btn toggle-btn"
-                                            onClick={() => toggleStatus(voucher)}
-                                            title={voucher.is_active ? 'Deactivate' : 'Activate'}
-                                        >
-                                            {voucher.is_active ? '🔴' : '🟢'}
-                                        </button>
-                                        <button 
-                                            className="action-btn delete-btn"
-                                            onClick={() => handleDelete(voucher.voucher_code)}
-                                            title="Delete"
-                                        >
-                                            🗑️
-                                        </button>
+                                        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+                                            <button
+                                                className="action-btn edit-btn"
+                                                onClick={() => handleEdit(voucher)}
+                                                title="Edit"
+                                            >
+                                                Edit
+                                            </button>
+                                            <button
+                                                className={`action-btn toggle-btn ${voucher.is_active ? 'deactivate-btn' : 'activate-btn'}`}
+                                                onClick={() => toggleStatus(voucher)}
+                                                title={voucher.is_active ? 'Deactivate' : 'Activate'}
+                                                style={{ marginBottom: '0.2rem' }}
+                                            >
+                                                {voucher.is_active ? 'Deactivate' : 'Activate'}
+                                            </button>
+                                            <button
+                                                className="action-btn delete-btn"
+                                                onClick={() => handleDelete(voucher.voucher_code)}
+                                                title="Delete"
+                                            >
+                                                Delete
+                                            </button>
+                                        </div>
                                     </td>
                                 </tr>
                             ))
