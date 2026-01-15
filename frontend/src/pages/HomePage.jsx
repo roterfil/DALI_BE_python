@@ -29,7 +29,7 @@ const HomePage = () => {
     'Frozen Goods': 'https://images.unsplash.com/photo-1604719312566-8912e9227c6a?w=400&auto=format&fit=crop',
     'Health & Beauty': 'https://images.unsplash.com/photo-1596462502278-27bfdc403348?w=400&auto=format&fit=crop',
     'Snacks': 'https://images.unsplash.com/photo-1599490659213-e2b9527bd087?w=400&auto=format&fit=crop',
-    'Beverages': 'https://images.unsplash.com/photo-1534353473418-4cfa6c56fd38?w=400&auto=format&fit=crop',
+    'Beverage': 'https://images.unsplash.com/photo-1534353473418-4cfa6c56fd38?w=400&auto=format&fit=crop',
     'Food Staples': 'https://images.unsplash.com/photo-1586201375761-83865001e31c?w=400&auto=format&fit=crop',
     'Home Essentials': 'https://images.unsplash.com/photo-1583947215259-38e31be8751f?w=400&auto=format&fit=crop',
   };

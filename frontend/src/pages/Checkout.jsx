@@ -578,7 +578,6 @@ const Checkout = () => {
                         onKeyDown={handleVoucherKeyDown}
                         onBlur={handleVoucherBlur}
                       />
-                      <small className="voucher-hint">Press Enter to apply</small> 
                       <button
                         onClick={handleApplyVoucher}
                         disabled={applyingVoucher || !voucherInput.trim()}

@@ -350,6 +350,7 @@ Base URL: `http://localhost:8000/api`
 | GET | `/inventory` | List all products | Admin |
 | PUT | `/inventory/{id}` | Update product stock | Admin |
 | PUT | `/products/{id}/price` | Update product price | Admin |
+| PUT | `/products/{id}/discount` | Update product discount | Admin |
 
 ---
 

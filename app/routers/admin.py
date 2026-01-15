@@ -19,21 +19,25 @@ Permission Structure:
   * Update order status (PUT /orders/{id}/status)
 """
 from fastapi import APIRouter, Request, Depends, HTTPException, Query, UploadFile, File, Form
-from sqlalchemy.orm import Session
-from sqlalchemy import desc, or_, func, extract
+from sqlalchemy.orm import Session, joinedload
+from sqlalchemy import desc, or_, func, extract, String, cast
 from typing import Optional, List
 from datetime import datetime, timedelta
 from app.core.database import get_db
-from app.core.security import get_current_admin, verify_password, get_password_hash
+from app.core.security import get_current_admin, verify_password
 import json
 import os
 import uuid
-from app.models import Product, Order, AdminAccount, ShippingStatus, Account, AuditLog, Store, Voucher, VoucherUsage, OrderItem
+from app.models import (
+    Product, Order, AdminAccount, ShippingStatus, 
+    Account, AuditLog, Voucher, VoucherUsage, OrderItem, OrderPickup
+)
 from app.schemas import OrderResponse, ProductResponse, LoginRequest, ProductCreate
 from pydantic import BaseModel
 
 router = APIRouter(prefix="/api/admin", tags=["admin"])
 
+# --- SCHEMAS ---
 class UpdateDiscountRequest(BaseModel):
     product_discount_price: Optional[float] = None
     is_on_sale: bool
@@ -42,9 +46,6 @@ class AdminLoginResponse(BaseModel):
     message: str
     admin_email: str
     is_super_admin: bool = False
-    store_id: Optional[int] = None
-    store_name: Optional[str] = None
-
 
 class UpdateStockRequest(BaseModel):
     quantity: int
@@ -53,11 +54,54 @@ class UpdateStockRequest(BaseModel):
 class UpdatePriceRequest(BaseModel):
     price: float
 
+@router.put("/products/{product_id}/price")
+async def update_price(
+    product_id: int,
+    price_data: UpdatePriceRequest,
+    db: Session = Depends(get_db),
+    admin=Depends(get_current_admin)
+):
+    """Update product price (Super Admin only)."""
+    if not getattr(admin, 'is_super_admin', False):
+        raise HTTPException(status_code=403, detail="Super admin access required")
+
+    product = db.query(Product).filter(Product.product_id == product_id).first()
+    if not product:
+        raise HTTPException(status_code=404, detail="Product not found")
+
+    old_price = float(product.product_price)
+    new_price = price_data.price
+
+    if old_price == new_price:
+        return {"message": "No change", "product_id": product_id, "product_price": old_price}
+
+    product.product_price = new_price
+    # If discount price is set, ensure it is still less than new price
+    if product.is_on_sale and product.product_discount_price is not None:
+        if float(product.product_discount_price) >= new_price:
+            raise HTTPException(status_code=400, detail="Discount price must be less than the new price.")
+
+    db.commit()
+
+    # Audit Log
+    try:
+        audit = AuditLog(
+            actor_email=admin.account_email,
+            action='UPDATE_PRICE',
+            entity_type='product',
+            entity_id=product_id,
+            details=json.dumps({'old_price': old_price, 'new_price': new_price})
+        )
+        db.add(audit)
+        db.commit()
+    except Exception:
+        db.rollback()
+
+    return {"message": "Price updated", "product_id": product_id, "product_price": float(product.product_price)}
 
 class UpdateStatusRequest(BaseModel):
     status: ShippingStatus
     notes: str = None
-
 
 class AuditLogResponse(BaseModel):
     audit_id: int
@@ -68,46 +112,28 @@ class AuditLogResponse(BaseModel):
     details: Optional[str]
     created_at: Optional[str]
 
+class ProductUpdateRequest(BaseModel):
+    product_name: Optional[str] = None
+    product_description: Optional[str] = None
+    product_category: Optional[str] = None
+    product_subcategory: Optional[str] = None
+
+# --- ENDPOINTS ---
 
 @router.post("/login", response_model=AdminLoginResponse)
-async def admin_login(
-    request: Request,
-    credentials: LoginRequest,
-    db: Session = Depends(get_db)
-):
-    """Admin login."""
-    admin = db.query(AdminAccount).filter(
-        AdminAccount.account_email == credentials.email
-    ).first()
+async def admin_login(request: Request, credentials: LoginRequest, db: Session = Depends(get_db)):
+    admin = db.query(AdminAccount).filter(AdminAccount.account_email == credentials.email).first()
     
     if not admin or not verify_password(credentials.password, admin.password_hash):
-        raise HTTPException(
-            status_code=401,
-            detail="Invalid credentials"
-        )
+        raise HTTPException(status_code=401, detail="Invalid credentials")
     
     request.session["admin_email"] = admin.account_email
-    
-    # Get store info if assigned
-    store_name = None
-    if admin.store_id and admin.store:
-        store_name = admin.store.store_name
     
     return AdminLoginResponse(
         message="Login successful",
         admin_email=admin.account_email,
-        is_super_admin=getattr(admin, 'is_super_admin', False),
-        store_id=admin.store_id,
-        store_name=store_name
+        is_super_admin=getattr(admin, 'is_super_admin', False)
     )
-
-
-@router.post("/logout")
-async def admin_logout(request: Request):
-    """Admin logout."""
-    request.session.pop("admin_email", None)
-    return {"message": "Logged out successfully"}
-
 
 @router.get("/inventory")
 async def get_inventory(
@@ -117,270 +143,32 @@ async def get_inventory(
     db: Session = Depends(get_db),
     admin = Depends(get_current_admin)
 ):
-    """Get all products in inventory with store-specific quantities."""
-    from app.models import StoreInventory
-    from sqlalchemy import func
-    import logging
+    """Get all products in global inventory."""
+    query = db.query(Product)
     
-    logger = logging.getLogger(__name__)
-    
-    store_id = getattr(admin, 'store_id', None)
-    is_super = getattr(admin, 'is_super_admin', False)
-    
-    logger.info(f"Inventory request - Admin: {admin.account_email}, Store: {store_id}, Is Super: {is_super}")
-    logger.info(f"Filters - search: {search}, category: {category}, subcategory: {subcategory}")
-    
-    if is_super:
-        # Super admin sees all products with minimum quantity across all stores
-        # This way low stock filter will show products that are low in ANY store
+    if search:
+        query = query.filter(Product.product_name.ilike(f"%{search}%"))
+    if category:
+        query = query.filter(Product.product_category == category)
+    if subcategory:
+        query = query.filter(Product.product_subcategory == subcategory)
         
-        # Start with base product query and apply filters FIRST
-        base_query = db.query(Product)
-        
-        if search:
-            base_query = base_query.filter(Product.product_name.ilike(f"%{search}%"))
-        if category:
-            base_query = base_query.filter(Product.product_category == category)
-        if subcategory:
-            base_query = base_query.filter(Product.product_subcategory == subcategory)
-        
-        # Create subquery for filtered products
-        filtered_products = base_query.subquery()
-        
-        # Now join with inventory and group
-        query = db.query(
-            filtered_products.c.product_id,
-            filtered_products.c.product_name,
-            filtered_products.c.product_description,
-            filtered_products.c.product_price,
-            filtered_products.c.product_category,
-            filtered_products.c.product_subcategory,
-            func.min(StoreInventory.quantity).label('product_quantity'),
-            filtered_products.c.image,
-            filtered_products.c.is_on_sale,
-            filtered_products.c.product_discount_price
-        ).outerjoin(
-            StoreInventory,
-            filtered_products.c.product_id == StoreInventory.product_id
-        ).group_by(
-            filtered_products.c.product_id,
-            filtered_products.c.product_name,
-            filtered_products.c.product_description,
-            filtered_products.c.product_price,
-            filtered_products.c.product_category,
-            filtered_products.c.product_subcategory,
-            filtered_products.c.image,
-            filtered_products.c.is_on_sale,
-            filtered_products.c.product_discount_price
-        )
-        
-        results = query.all()
-        
-        products = []
-        for row in results:
-            products.append({
-                "product_id": row.product_id,
-                "product_name": row.product_name,
-                "product_description": row.product_description,
-                "product_price": float(row.product_price),
-                "product_category": row.product_category,
-                "product_subcategory": row.product_subcategory,
-                "product_quantity": row.product_quantity or 0,
-                "image": row.image,
-                "is_on_sale": row.is_on_sale,
-                "product_discount_price": float(row.product_discount_price) if row.product_discount_price else None
-            })
-        
-        logger.info(f"Super admin inventory: {len(products)} products")
-        return products
-    else:
-        # Regular admin sees products with store-specific quantities
-        if not store_id:
-            raise HTTPException(status_code=400, detail="Regular admin must have a store assignment")
-        
-        # Join Product with StoreInventory for this store
-        query = db.query(
-            Product.product_id,
-            Product.product_name,
-            Product.product_description,
-            Product.product_price,
-            Product.product_category,
-            Product.product_subcategory,
-            StoreInventory.quantity.label('product_quantity'),
-            Product.image,
-            Product.is_on_sale,
-            Product.product_discount_price
-        ).join(
-            StoreInventory,
-            Product.product_id == StoreInventory.product_id
-        ).filter(
-            StoreInventory.store_id == store_id
-        )
-        
-        # Apply search filter
-        if search:
-            query = query.filter(Product.product_name.ilike(f"%{search}%"))
-        
-        # Apply category filter
-        if category:
-            query = query.filter(Product.product_category == category)
-        
-        # Apply subcategory filter
-        if subcategory:
-            query = query.filter(Product.product_subcategory == subcategory)
-        
-        results = query.all()
-        
-        # Convert to dict format
-        products = []
-        for row in results:
-            products.append({
-                "product_id": row.product_id,
-                "product_name": row.product_name,
-                "product_description": row.product_description,
-                "product_price": float(row.product_price),
-                "product_category": row.product_category,
-                "product_subcategory": row.product_subcategory,
-                "product_quantity": row.product_quantity,
-                "image": row.image,
-                "is_on_sale": row.is_on_sale,
-                "product_discount_price": float(row.product_discount_price) if row.product_discount_price else None
-            })
-        
-        logger.info(f"Store {store_id} inventory: {len(products)} products")
-        return products
-
-
-@router.get("/products/{product_id}")
-async def get_product_detail(
-    product_id: int,
-    db: Session = Depends(get_db),
-    admin = Depends(get_current_admin)
-):
-    """Get product details with store-specific quantity for regular admins."""
-    from app.models import StoreInventory
-    import logging
-    
-    logger = logging.getLogger(__name__)
-    
-    store_id = getattr(admin, 'store_id', None)
-    is_super = getattr(admin, 'is_super_admin', False)
-    
-    product = db.query(Product).filter(Product.product_id == product_id).first()
-    if not product:
-        raise HTTPException(status_code=404, detail="Product not found")
-    
-    # For regular admins, get store-specific quantity
-    if not is_super and store_id:
-        inventory = db.query(StoreInventory).filter(
-            StoreInventory.product_id == product_id,
-            StoreInventory.store_id == store_id
-        ).first()
-        
-        if inventory:
-            # Return product with store-specific quantity
-            return {
-                "product_id": product.product_id,
-                "product_name": product.product_name,
-                "product_description": product.product_description,
-                "product_price": float(product.product_price),
-                "product_category": product.product_category,
-                "product_subcategory": product.product_subcategory,
-                "product_quantity": inventory.quantity,  # Store-specific quantity
-                "image": product.image,
-                "is_on_sale": product.is_on_sale,
-                "product_discount_price": float(product.product_discount_price) if product.product_discount_price else None,
-                "created_at": product.created_at,
-                "updated_at": product.updated_at
-            }
-        else:
-            logger.warning(f"No inventory record for product {product_id} in store {store_id}")
-    
-    return product
-
-
-@router.post("/products", response_model=ProductResponse)
-async def create_product(
-    product_name: str = Form(...),
-    product_description: str = Form(None),
-    product_price: float = Form(...),
-    product_category: str = Form(None),
-    product_subcategory: str = Form(None),
-    product_quantity: int = Form(...),
-    image: UploadFile = File(None),
-    db: Session = Depends(get_db),
-    admin = Depends(get_current_admin)
-):
-    """Create a new product (super-admin only). Accepts multipart/form-data with optional image."""
-    if not getattr(admin, 'is_super_admin', False):
-        raise HTTPException(status_code=403, detail="Super admin privileges required")
-
-    # handle image upload (store under frontend/public/images/products)
-    image_url = None
-    stored_image_name = None
-    if image:
-        try:
-            images_dir = os.path.join(os.getcwd(), 'frontend', 'public', 'images', 'products')
-            os.makedirs(images_dir, exist_ok=True)
-            orig_name = os.path.basename(image.filename)
-            ext = os.path.splitext(orig_name)[1]
-            fname = f"{uuid.uuid4().hex}{ext}"
-            dest = os.path.join(images_dir, fname)
-            content = await image.read()
-            with open(dest, 'wb') as f:
-                f.write(content)
-            # URL used by clients is /images/products/<fname>
-            image_url = f"/images/products/{fname}"
-            # store only the filename in the DB to avoid double-prefixing on frontend
-            stored_image_name = fname
-        except Exception:
-            image_url = None
-            stored_image_name = None
-
-    product = Product(
-        product_name=product_name,
-        product_description=product_description,
-        product_price=product_price,
-        product_category=product_category,
-        product_subcategory=product_subcategory,
-        product_quantity=product_quantity,
-        image=stored_image_name if stored_image_name else None,
-    )
-    db.add(product)
-    db.commit()
-    db.refresh(product)
-
-    # Audit log for product creation
-    try:
-        actor_email = getattr(admin, 'account_email', None) or getattr(admin, 'email', None) or 'unknown'
-        actor = db.query(Account).filter(Account.account_email == actor_email).first()
-        actor_name = actor.full_name if actor else None
-        # For CREATE_PRODUCT include explicit before/after fields so frontend can render diffs
-        audit_details = {
-            'product_id': product.product_id,
-            'product_name': product.product_name,
-            'sku': None,
-            'old_price': 0.0,
-            'new_price': float(product.product_price),
-            'old_quantity': 0,
-            'new_quantity': int(product.product_quantity),
-        }
-        if actor_name:
-            audit_details['actor_name'] = actor_name
-        audit = AuditLog(
-            actor_email=actor_email,
-            action='CREATE_PRODUCT',
-            entity_type='product',
-            entity_id=product.product_id,
-            details=json.dumps(audit_details)
-        )
-        db.add(audit)
-        db.commit()
-    except Exception:
-        db.rollback()
-
-    return product
-
+    results = query.all()
+    products = []
+    for row in results:
+        products.append({
+            "product_id": row.product_id,
+            "product_name": row.product_name,
+            "product_description": row.product_description,
+            "product_price": float(row.product_price),
+            "product_category": row.product_category,
+            "product_subcategory": row.product_subcategory,
+            "product_quantity": row.product_quantity,
+            "image": row.image,
+            "is_on_sale": row.is_on_sale,
+            "product_discount_price": float(row.product_discount_price) if row.product_discount_price else None
+        })
+    return products
 
 @router.put("/products/{product_id}/stock")
 async def update_stock(
@@ -389,656 +177,268 @@ async def update_stock(
     db: Session = Depends(get_db),
     admin = Depends(get_current_admin)
 ):
-    """Update product stock quantity - updates store_inventory for regular admins."""
-    from app.models import StoreInventory
-    import logging
-    
-    logger = logging.getLogger(__name__)
-    
-    store_id = getattr(admin, 'store_id', None)
-    is_super = getattr(admin, 'is_super_admin', False)
-    new_qty = int(stock_data.quantity)
-    
+    """Update global product stock quantity."""
     product = db.query(Product).filter(Product.product_id == product_id).first()
     if not product:
         raise HTTPException(status_code=404, detail="Product not found")
     
-    if is_super:
-        # Super admin updates global product quantity
-        old_qty = product.product_quantity
+    old_qty = product.product_quantity
+    new_qty = stock_data.quantity
+    
+    if old_qty == new_qty:
+        return {"message": "No change", "product_id": product_id, "quantity": old_qty}
         
-        if old_qty == new_qty:
-            return {"message": "No change", "product_id": product_id, "quantity": old_qty}
-        
-        product.product_quantity = new_qty
-        db.commit()
-        logger.info(f"Super admin updated global stock for product {product_id}: {old_qty} -> {new_qty}")
-        
-    else:
-        # Regular admin updates store_inventory
-        if not store_id:
-            raise HTTPException(status_code=400, detail="Regular admin must have a store assignment")
-        
-        inventory = db.query(StoreInventory).filter(
-            StoreInventory.product_id == product_id,
-            StoreInventory.store_id == store_id
-        ).first()
-        
-        if not inventory:
-            raise HTTPException(status_code=404, detail=f"Product not found in store {store_id} inventory")
-        
-        old_qty = inventory.quantity
-        
-        if old_qty == new_qty:
-            return {"message": "No change", "product_id": product_id, "quantity": old_qty, "store_id": store_id}
-        
-        inventory.quantity = new_qty
-        db.commit()
-        logger.info(f"Store {store_id} admin updated stock for product {product_id}: {old_qty} -> {new_qty}")
+    product.product_quantity = new_qty
+    db.commit()
 
-    # Audit log entry
+    # Audit Log
     try:
-        actor_email = getattr(admin, 'account_email', None) or getattr(admin, 'email', None) or 'unknown'
-        actor = db.query(Account).filter(Account.account_email == actor_email).first()
-        actor_name = actor.full_name if actor else None
-        audit_details = {
-            'old_quantity': old_qty, 
-            'new_quantity': new_qty,
-            'store_id': store_id if not is_super else 'global'
-        }
-        if actor_name:
-            audit_details['actor_name'] = actor_name
         audit = AuditLog(
-            actor_email=actor_email,
+            actor_email=admin.account_email,
             action='UPDATE_STOCK',
             entity_type='product',
             entity_id=product_id,
-            details=json.dumps(audit_details)
+            details=json.dumps({'old_quantity': old_qty, 'new_quantity': new_qty})
         )
         db.add(audit)
         db.commit()
-    except Exception as e:
-        logger.error(f"Failed to create audit log: {e}")
+    except Exception:
         db.rollback()
 
-    return {
-        "message": "Stock updated", 
-        "product_id": product_id, 
-        "quantity": new_qty,
-        "store_id": store_id if not is_super else None
-    }
+    return {"message": "Stock updated", "product_id": product_id, "quantity": new_qty}
 
 
-@router.put("/products/{product_id}/price")
-async def update_price(
+@router.put("/products/{product_id}/discount")
+async def update_discount(
     product_id: int,
-    price_data: UpdatePriceRequest,
+    discount_data: UpdateDiscountRequest,
     db: Session = Depends(get_db),
-    admin = Depends(get_current_admin)
+    admin=Depends(get_current_admin)
 ):
-    """Update product price (super admin only)."""
-    # Require super admin
+    """Update product discount (Super Admin only)."""
     if not getattr(admin, 'is_super_admin', False):
-        raise HTTPException(status_code=403, detail="Super admin privileges required")
+        raise HTTPException(status_code=403, detail="Super admin access required")
 
     product = db.query(Product).filter(Product.product_id == product_id).first()
     if not product:
         raise HTTPException(status_code=404, detail="Product not found")
-    # Normalize to two decimals for comparison
-    try:
-        old_price = round(float(product.product_price), 2)
-    except Exception:
-        old_price = float(product.product_price) if product.product_price is not None else 0.0
 
-    new_price = round(float(price_data.price), 2)
-
-    # If price unchanged, skip audit and DB write
-    if old_price == new_price:
-        return {"message": "No change", "product_id": product_id, "price": old_price}
-
-    product.product_price = new_price
+    old_discount = product.product_discount_price
+    old_sale_status = product.is_on_sale
     
-    # If product is on sale and new price is less than or equal to discount price, disable sale
-    if product.is_on_sale and product.product_discount_price:
-        if new_price <= float(product.product_discount_price):
-            product.is_on_sale = False
-            product.product_discount_price = None
+    product.is_on_sale = discount_data.is_on_sale
     
+    # If the product is on sale, a discount price must be provided.
+    if product.is_on_sale:
+        if discount_data.product_discount_price is None:
+            raise HTTPException(status_code=400, detail="Discount price is required when product is on sale.")
+        
+        # The discount price should be less than the original price.
+        if discount_data.product_discount_price >= product.product_price:
+            raise HTTPException(status_code=400, detail="Discount price must be less than the original price.")
+            
+        product.product_discount_price = discount_data.product_discount_price
+    else:
+        # If the product is not on sale, remove the discount price.
+        product.product_discount_price = None
+
     db.commit()
 
-    # Audit log entry (include actor name when available)
+    # Audit Log
     try:
-        actor_email = getattr(admin, 'account_email', None) or getattr(admin, 'email', None) or 'unknown'
-        actor = db.query(Account).filter(Account.account_email == actor_email).first()
-        actor_name = actor.full_name if actor else None
-        audit_details = {'old_price': old_price, 'new_price': float(product.product_price)}
-        if actor_name:
-            audit_details['actor_name'] = actor_name
         audit = AuditLog(
-            actor_email=actor_email,
-            action='UPDATE_PRICE',
+            actor_email=admin.account_email,
+            action='UPDATE_DISCOUNT',
             entity_type='product',
             entity_id=product_id,
-            details=json.dumps(audit_details)
+            details=json.dumps({
+                'old_discount': float(old_discount) if old_discount else None,
+                'new_discount': float(product.product_discount_price) if product.product_discount_price else None,
+                'old_sale_status': old_sale_status,
+                'new_sale_status': product.is_on_sale
+            })
         )
         db.add(audit)
         db.commit()
     except Exception:
         db.rollback()
 
-    return {"message": "Price updated", "product_id": product_id, "old_price": old_price, "new_price": float(product.product_price)}
+    return {
+        "message": "Discount updated",
+        "product_id": product_id,
+        "is_on_sale": product.is_on_sale,
+        "product_discount_price": float(product.product_discount_price) if product.product_discount_price else None
+    }
 
 
 @router.put("/products/{product_id}")
 async def update_product(
     product_id: int,
-    product_name: Optional[str] = Form(None),
-    product_description: Optional[str] = Form(None),
-    product_category: Optional[str] = Form(None),
-    product_subcategory: Optional[str] = Form(None),
-    image: UploadFile = File(None),
+    product_data: ProductUpdateRequest,
     db: Session = Depends(get_db),
-    admin = Depends(get_current_admin)
+    admin=Depends(get_current_admin)
 ):
-    """Update product details (name, description, category, subcategory, image) - super admin only.
-    Image upload is optional and stored under frontend/public/images/products; DB stores filename only.
-    """
-    # Require super admin
+    """Update product details (Super Admin only)."""
     if not getattr(admin, 'is_super_admin', False):
-        raise HTTPException(status_code=403, detail="Super admin privileges required")
-    
+        raise HTTPException(status_code=403, detail="Super admin access required")
+
     product = db.query(Product).filter(Product.product_id == product_id).first()
     if not product:
         raise HTTPException(status_code=404, detail="Product not found")
 
-    changes = {}
-    # Compare and set fields
-    if product_name is not None and product.product_name != product_name:
-        changes['product_name'] = {'old': product.product_name, 'new': product_name}
-        product.product_name = product_name
-    if product_description is not None and product.product_description != product_description:
-        changes['product_description'] = {'old': product.product_description, 'new': product_description}
-        product.product_description = product_description
-    if product_category is not None and product.product_category != product_category:
-        changes['product_category'] = {'old': product.product_category, 'new': product_category}
-        product.product_category = product_category
-    if product_subcategory is not None and product.product_subcategory != product_subcategory:
-        changes['product_subcategory'] = {'old': product.product_subcategory, 'new': product_subcategory}
-        product.product_subcategory = product_subcategory
+    update_data = product_data.dict(exclude_unset=True)
+    if not update_data:
+        raise HTTPException(status_code=400, detail="No update data provided")
 
-    # handle image upload
-    if image:
-        try:
-            images_dir = os.path.join(os.getcwd(), 'frontend', 'public', 'images', 'products')
-            os.makedirs(images_dir, exist_ok=True)
-            orig_name = os.path.basename(image.filename)
-            ext = os.path.splitext(orig_name)[1]
-            fname = f"{uuid.uuid4().hex}{ext}"
-            dest = os.path.join(images_dir, fname)
-            content = await image.read()
-            with open(dest, 'wb') as f:
-                f.write(content)
-            new_image_name = fname
-            # record change
-            changes['image'] = {'old': product.image, 'new': new_image_name}
-            product.image = new_image_name
-        except Exception:
-            pass
+    for key, value in update_data.items():
+        setattr(product, key, value)
 
-    if changes:
-        db.add(product)
-        db.commit()
-
-        # Audit log entry
-        try:
-            actor_email = getattr(admin, 'account_email', None) or getattr(admin, 'email', None) or 'unknown'
-            actor = db.query(Account).filter(Account.account_email == actor_email).first()
-            actor_name = actor.full_name if actor else None
-            audit_details = {'changes': changes}
-            if actor_name:
-                audit_details['actor_name'] = actor_name
-            audit = AuditLog(
-                actor_email=actor_email,
-                action='UPDATE_PRODUCT',
-                entity_type='product',
-                entity_id=product_id,
-                details=json.dumps(audit_details)
-            )
-            db.add(audit)
-            db.commit()
-        except Exception:
-            db.rollback()
-
-    return {"message": "Product updated", "product_id": product_id, "changes": changes}
-
-@router.put("/products/{product_id}/discount")
-async def update_product_discount(
-    product_id: int,
-    discount_data: UpdateDiscountRequest,
-    db: Session = Depends(get_db),
-    admin = Depends(get_current_admin)
-):
-    """Update product discount price and sale status (super admin only)."""
-    # Require super admin
-    if not getattr(admin, 'is_super_admin', False):
-        raise HTTPException(status_code=403, detail="Super admin privileges required")
-    
-    product = db.query(Product).filter(Product.product_id == product_id).first()
-    if not product:
-        raise HTTPException(status_code=404, detail="Product not found")
-
-    # Update fields
-    product.product_discount_price = discount_data.product_discount_price
-    product.is_on_sale = discount_data.is_on_sale
-    
     db.commit()
+    db.refresh(product)
 
-    # Log the action in the Audit Log
+    # Audit Log
     try:
-        actor_email = getattr(admin, 'account_email', 'unknown')
         audit = AuditLog(
-            actor_email=actor_email,
-            action='UPDATE_DISCOUNT',
+            actor_email=admin.account_email,
+            action='UPDATE_PRODUCT',
             entity_type='product',
             entity_id=product_id,
-            details=f"Sale set to {product.is_on_sale} with price {product.product_discount_price}"
+            details=json.dumps(update_data)
         )
         db.add(audit)
         db.commit()
     except Exception:
         db.rollback()
 
-    return {"message": "Discount updated successfully"}
-
-@router.delete("/products/{product_id}")
-async def delete_product(
-    product_id: int,
-    db: Session = Depends(get_db),
-    admin = Depends(get_current_admin)
-):
-    """Delete a product (super-admin only). Removes image file when possible and logs an audit entry."""
-    if not getattr(admin, 'is_super_admin', False):
-        raise HTTPException(status_code=403, detail="Super admin privileges required")
-
-    product = db.query(Product).filter(Product.product_id == product_id).first()
-    if not product:
-        raise HTTPException(status_code=404, detail="Product not found")
-
-    # capture product snapshot for audit
-    snapshot = {
-        'product_id': product.product_id,
-        'product_name': product.product_name,
-        'product_description': product.product_description,
-        'product_category': product.product_category,
-        'product_subcategory': product.product_subcategory,
-        'product_price': float(product.product_price) if product.product_price is not None else None,
-        'product_quantity': product.product_quantity,
-        'image': product.image,
+    return {
+        "message": "Product updated successfully",
+        "product_id": product.product_id,
+        "updated_fields": list(update_data.keys())
     }
 
-    # attempt to remove image file
-    try:
-        if product.image:
-            img_path = os.path.join(os.getcwd(), 'frontend', 'public', 'images', 'products', product.image)
-            if os.path.exists(img_path):
-                os.remove(img_path)
-    except Exception:
-        # non-fatal
-        pass
-
-    try:
-        db.delete(product)
-        db.commit()
-
-        # write audit log
-        actor_email = getattr(admin, 'account_email', None) or getattr(admin, 'email', None) or 'unknown'
-        actor = db.query(Account).filter(Account.account_email == actor_email).first()
-        actor_name = actor.full_name if actor else None
-        audit_details = {'deleted_product': snapshot}
-        if actor_name:
-            audit_details['actor_name'] = actor_name
-        audit = AuditLog(
-            actor_email=actor_email,
-            action='DELETE_PRODUCT',
-            entity_type='product',
-            entity_id=product_id,
-            details=json.dumps(audit_details)
-        )
-        db.add(audit)
-        db.commit()
-    except Exception:
-        db.rollback()
-        raise HTTPException(status_code=500, detail='Failed to delete product')
-
-    return {"message": "Product deleted", "product_id": product_id}
-
-
-@router.get("/orders", response_model=List[OrderResponse])
-async def get_all_orders(
-    search: Optional[str] = Query(None),
-    db: Session = Depends(get_db),
-    admin = Depends(get_current_admin)
-):
-    """Get all orders."""
-    if search:
-        # Search by order ID, customer name, or email
-        orders = db.query(Order).join(Order.account).filter(
-            or_(
-                Order.order_id == int(search) if search.isdigit() else False,
-                Account.account_first_name.ilike(f"%{search}%"),
-                Account.account_last_name.ilike(f"%{search}%"),
-                Account.account_email.ilike(f"%{search}%")
-            )
-        ).order_by(desc(Order.created_at)).all()
-    else:
-        orders = db.query(Order).order_by(desc(Order.created_at)).all()
-    
-    return orders
-
-
-@router.get("/orders/{order_id}", response_model=OrderResponse)
-async def get_order_detail(
-    order_id: int,
-    db: Session = Depends(get_db),
-    admin = Depends(get_current_admin)
-):
-    """Get order details."""
-    order = db.query(Order).filter(Order.order_id == order_id).first()
-    if not order:
-        raise HTTPException(status_code=404, detail="Order not found")
-    return order
-
-
-@router.put("/orders/{order_id}/status")
-async def update_order_status(
-    order_id: int,
-    status_data: UpdateStatusRequest,
-    db: Session = Depends(get_db),
-    admin = Depends(get_current_admin)
-):
-    """Update order shipping status (super admin only)."""
-    # Require super admin
-    if not getattr(admin, 'is_super_admin', False):
-        raise HTTPException(status_code=403, detail="Super admin privileges required")
-    
-    from app.services.order_service import OrderService
-    try:
-        OrderService.update_shipping_status(db, order_id, status_data.status, status_data.notes)
-        return {"message": "Status updated", "order_id": order_id, "status": status_data.status.value}
-    except ValueError as e:
-        raise HTTPException(status_code=400, detail=str(e))
 
 
 @router.get("/stats")
 async def get_dashboard_stats(
-    db: Session = Depends(get_db),
-    admin = Depends(get_current_admin)
+    admin = Depends(get_current_admin),
+    db: Session = Depends(get_db)
 ):
-    """Get dashboard statistics - now shows global data for all admins."""
-    from sqlalchemy import func
-    from app.models import OrderPickup, StoreInventory
-    import logging
-    
-    logger = logging.getLogger(__name__)
-    
-    # Check admin type (for logging and future use)
-    store_id = getattr(admin, 'store_id', None)
-    is_super = getattr(admin, 'is_super_admin', False)
-    
-    logger.info(f"Admin stats request - Email: {admin.account_email}, Store ID: {store_id}, Is Super: {is_super}")
-    
-    # ALL ADMINS: Get statistics across ALL stores (global data)
-    logger.info("Fetching global statistics for admin")
-    
-    # Total orders (all orders in system)
+    """Get overview statistics for the admin dashboard."""
+    # Counts
     total_orders = db.query(Order).count()
-    
-    # Total products (all unique products in system)
+    total_revenue = db.query(func.sum(Order.total_price)).scalar() or 0
     total_products = db.query(Product).count()
+    total_customers = db.query(Account).count()
     
-    # Total revenue (all paid orders)
-    total_revenue = db.query(func.sum(Order.total_price)).filter(
-        Order.payment_status == "PAID"
-    ).scalar() or 0
-    
-    # Pending orders
-    pending_orders = db.query(Order).filter(
-        Order.shipping_status == ShippingStatus.PROCESSING
-    ).count()
-    
-    # Active orders (processing, preparing, in transit)
-    active_orders = db.query(Order).filter(
-        Order.shipping_status.in_([
-            ShippingStatus.PROCESSING,
-            ShippingStatus.PREPARING_FOR_SHIPMENT,
-            ShippingStatus.IN_TRANSIT
-        ])
-    ).count()
-    
-    # Completed orders (delivered or collected)
-    completed_orders = db.query(Order).filter(
-        Order.shipping_status.in_([
-            ShippingStatus.DELIVERED,
-            ShippingStatus.COLLECTED
-        ])
-    ).count()
-    
-    # Cancelled orders
-    cancelled_orders = db.query(Order).filter(
-        Order.shipping_status == ShippingStatus.CANCELLED
-    ).count()
-    
-    # Stock alerts (distinct products with low stock in any store)
-    stock_alerts_subquery = db.query(
-        StoreInventory.product_id
-    ).filter(
-        StoreInventory.quantity < StoreInventory.low_stock_threshold
-    ).distinct().subquery()
-    
-    stock_alerts = db.query(func.count()).select_from(stock_alerts_subquery).scalar() or 0
-    
-    logger.info(f"Global Stats for {admin.account_email} - Orders: {total_orders}, Products: {total_products}, Revenue: {total_revenue}, Alerts: {stock_alerts}")
+    # Recent orders with relationships loaded
+    recent_orders = db.query(Order).options(
+        joinedload(Order.account),
+        joinedload(Order.order_items).joinedload(OrderItem.product)
+    ).order_by(desc(Order.created_at)).limit(5).all()
 
-    response_data = {
-        "total_orders": total_orders,
-        "total_products": total_products,
-        "pending_orders": pending_orders,
-        "active_orders": active_orders,
-        "completed_orders": completed_orders,
-        "cancelled_orders": cancelled_orders,
-        "total_revenue": float(total_revenue),
-        "stock_alerts": stock_alerts,
-        "store_id": store_id,
-        "is_store_filtered": False  # Now always false since all admins see global data
-    }
-    
-    logger.info(f"Returning global stats: {response_data}")
-    return response_data
+    # Serialize recent orders using OrderResponse
+    from app.schemas import OrderResponse
+    serialized_recent_orders = [OrderResponse.from_orm(order).dict() for order in recent_orders]
 
+    # Low stock
+    low_stock_count = db.query(Product).filter(Product.product_quantity <= 10).count()
 
-@router.get("/stats/revenue-by-month")
-async def get_revenue_by_month(
-    months: int = Query(12, ge=1, le=24),
-    db: Session = Depends(get_db),
-    admin = Depends(get_current_admin)
-):
-    """
-    Get revenue data grouped by month for the last N months.
-    Returns array of {month, year, revenue} objects.
-    Now shows global data for all admins.
-    """
-    from app.models import OrderPickup
-    import logging
-    from calendar import month_abbr
-    
-    logger = logging.getLogger(__name__)
-    
-    store_id = getattr(admin, 'store_id', None)
-    is_super = getattr(admin, 'is_super_admin', False)
-    
-    # Calculate date range
-    end_date = datetime.now()
-    start_date = end_date - timedelta(days=months * 31)  # Approximate
-    
-    logger.info(f"Revenue by month - Admin: {admin.account_email}, Store: {store_id}, Months: {months} (showing global data)")
-    
-    # Base query for paid orders (ALL ORDERS - no store filtering)
-    query = db.query(
-        extract('year', Order.created_at).label('year'),
-        extract('month', Order.created_at).label('month'),
-        func.sum(Order.total_price).label('revenue')
-    ).filter(
-        Order.payment_status == "PAID",
-        Order.created_at >= start_date
-    )
-    
-    # Group by year and month
-    results = query.group_by(
-        extract('year', Order.created_at),
-        extract('month', Order.created_at)
-    ).order_by(
-        extract('year', Order.created_at),
-        extract('month', Order.created_at)
-    ).all()
-    
-    # Format response
-    revenue_data = []
-    for row in results:
-        year = int(row.year)
-        month = int(row.month)
-        revenue = float(row.revenue) if row.revenue else 0
-        
-        # Format month name
-        month_name = month_abbr[month] if 1 <= month <= 12 else str(month)
-        
-        revenue_data.append({
-            "month": month_name,
-            "year": year,
-            "month_year": f"{month_name} {year}",
-            "revenue": revenue
-        })
-    
-    logger.info(f"Returning {len(revenue_data)} months of revenue data")
-    return revenue_data
-
-
-@router.get("/stats/top-products")
-async def get_top_products(
-    period: str = Query("monthly", pattern="^(weekly|monthly)$"),
-    limit: int = Query(10, ge=1, le=50),
-    db: Session = Depends(get_db),
-    admin = Depends(get_current_admin)
-):
-    """
-    Get top selling products by quantity sold.
-    Period can be 'weekly' (last 7 days) or 'monthly' (last 30 days).
-    Now shows global data for all admins.
-    """
-    from app.models import OrderPickup
-    import logging
-    
-    logger = logging.getLogger(__name__)
-    
-    store_id = getattr(admin, 'store_id', None)
-    is_super = getattr(admin, 'is_super_admin', False)
-    
-    # Calculate date range based on period
-    end_date = datetime.now()
-    if period == "weekly":
-        start_date = end_date - timedelta(days=7)
-        period_label = "Last 7 Days"
-    else:  # monthly
-        start_date = end_date - timedelta(days=30)
-        period_label = "Last 30 Days"
-    
-    logger.info(f"Top products - Admin: {admin.account_email}, Store: {store_id}, Period: {period} (showing global data)")
-    
-    # Base query: Join OrderItem -> Order -> Product (ALL ORDERS - no store filtering)
-    query = db.query(
-        Product.product_id,
-        Product.product_name,
-        Product.image,
-        func.sum(OrderItem.quantity).label('total_quantity'),
-        func.sum(OrderItem.quantity * Product.product_price).label('total_revenue')
-    ).join(
-        Order,
-        OrderItem.order_id == Order.order_id
-    ).join(
-        Product,
-        OrderItem.product_id == Product.product_id
-    ).filter(
-        Order.payment_status == "PAID",
-        Order.created_at >= start_date,
-        Order.created_at <= end_date
-    )
-    
-    # Group by product and order by quantity sold
-    results = query.group_by(
-        Product.product_id,
-        Product.product_name,
-        Product.image
-    ).order_by(
-        func.sum(OrderItem.quantity).desc()
-    ).limit(limit).all()
-    
-    # Format response
-    top_products = []
-    for row in results:
-        top_products.append({
-            "product_id": row.product_id,
-            "product_name": row.product_name,
-            "image": row.image,
-            "quantity_sold": int(row.total_quantity) if row.total_quantity else 0,
-            "revenue": float(row.total_revenue) if row.total_revenue else 0
-        })
-    
-    logger.info(f"Returning {len(top_products)} top products for {period}")
     return {
-        "period": period,
-        "period_label": period_label,
-        "products": top_products
+        "total_orders": total_orders,
+        "total_revenue": float(total_revenue),
+        "total_products": total_products,
+        "total_customers": total_customers,
+        "recent_orders": serialized_recent_orders,
+        "low_stock_count": low_stock_count
     }
+@router.get("/orders", response_model=List[OrderResponse])
+async def get_orders(
+    search: Optional[str] = None,
+    admin = Depends(get_current_admin),
+    db: Session = Depends(get_db)
+):
+    """Get list of all orders with search functionality."""
+    # Base query with all relationships loaded for OrderCard components
+    query = db.query(Order).options(
+        joinedload(Order.account),
+        joinedload(Order.order_items).joinedload(OrderItem.product)
+    )
 
+    if search:
+        # Filter by Order ID or Customer Email
+        query = query.join(Account).filter(
+            or_(
+                cast(Order.order_id, String).ilike(f"%{search}%"),
+                Account.account_email.ilike(f"%{search}%")
+            )
+        )
+    
+    orders = query.order_by(desc(Order.created_at)).all()
+    return orders
+
+@router.get("/orders/{order_id}", response_model=OrderResponse)
+async def get_admin_order(
+    order_id: int,
+    admin = Depends(get_current_admin),
+    db: Session = Depends(get_db)
+):
+    """Get detailed view of a specific order."""
+    order = db.query(Order).options(
+        joinedload(Order.account),
+        joinedload(Order.order_items).joinedload(OrderItem.product),
+        joinedload(Order.pickup_details)
+    ).filter(Order.order_id == order_id).first()
+    
+    if not order:
+        raise HTTPException(status_code=404, detail="Order not found")
+        
+    return order
+
+@router.put("/orders/{order_id}/status")
+async def update_order_status(
+    order_id: int,
+    status_data: dict,
+    admin = Depends(get_current_admin),
+    db: Session = Depends(get_db)
+):
+    """Update order shipping status (Super Admin only)."""
+    if not admin.is_super_admin:
+        raise HTTPException(status_code=403, detail="Super admin access required")
+        
+    order = db.query(Order).filter(Order.order_id == order_id).first()
+    if not order:
+        raise HTTPException(status_code=404, detail="Order not found")
+    
+    new_status = status_data.get("status")
+    if not new_status:
+        raise HTTPException(status_code=400, detail="Status is required")
+        
+    order.shipping_status = new_status
+    order.updated_at = datetime.utcnow()
+    
+    # Log the status change
+    log = AuditLog(
+        admin_id=admin.admin_id,
+        action="UPDATE",
+        entity_type="Order",
+        entity_id=order_id,
+        details=f"Updated status to {new_status}"
+    )
+    db.add(log)
+    db.commit()
+    
+    return {"message": f"Order status updated to {new_status}"}
 
 @router.get("/low-stock-products")
-async def get_low_stock_products(
-    db: Session = Depends(get_db),
-    admin = Depends(get_current_admin)
-):
-    """Get low stock products filtered by store for regular admins."""
-    from app.models import StoreInventory
-    
-    store_id = getattr(admin, 'store_id', None)
-    is_super = getattr(admin, 'is_super_admin', False)
-    
-    # Build query for low stock inventory items
-    query = db.query(StoreInventory, Product).join(
-        Product, StoreInventory.product_id == Product.product_id
-    ).filter(
-        StoreInventory.quantity < StoreInventory.low_stock_threshold
-    )
-    
-    # Filter by store for regular admins
-    if not is_super and store_id:
-        query = query.filter(StoreInventory.store_id == store_id)
-    
-    # Get results and order by quantity (lowest first)
-    results = query.order_by(StoreInventory.quantity.asc()).limit(10).all()
-    
-    # Format response
-    low_stock_items = []
-    for inventory, product in results:
-        low_stock_items.append({
-            "product_id": product.product_id,
-            "product_name": product.product_name,
-            "quantity": inventory.quantity,
-            "low_stock_threshold": inventory.low_stock_threshold,
-            "store_id": inventory.store_id,
-            "image": product.image,
-            "status": "out_of_stock" if inventory.quantity == 0 else "low_stock"
-        })
-    
-    return low_stock_items
+async def get_low_stock_products(db: Session = Depends(get_db), admin = Depends(get_current_admin)):
+    """Get products with quantity less than 10."""
+    results = db.query(Product).filter(Product.product_quantity <= 10).all()
+    return [{
+        "product_id": p.product_id,
+        "product_name": p.product_name,
+        "quantity": p.product_quantity,
+        "status": "out_of_stock" if p.product_quantity == 0 else "low_stock"
+    } for p in results]
 
 
 @router.get("/audit", response_model=List[AuditLogResponse])
@@ -1363,5 +763,4 @@ async def get_voucher_usage(
         "total_uses": len(usage_list),
         "usages": usage_list
     }
-
 
