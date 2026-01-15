@@ -2,9 +2,11 @@ import { useState, useEffect } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { productService } from '../../services';
 import adminService from '../../services/adminService';
+import { productsAPI, adminAPI } from '../../api/api';
 import { useAuth } from '../../context/AuthContext';
 import EditPriceModal from '../../components/EditPriceModal';
 import EditDiscountModal from '../../components/EditDiscountModal';
+import EditProductModal from '../../components/EditProductModal';
 
 const AdminProductDetail = () => {
   const { id } = useParams();
@@ -17,6 +19,7 @@ const AdminProductDetail = () => {
   const [success, setSuccess] = useState('');
   const [isPriceModalOpen, setIsPriceModalOpen] = useState(false);
   const [isDiscountModalOpen, setIsDiscountModalOpen] = useState(false);
+  const [isEditMenuOpen, setIsEditMenuOpen] = useState(false);
 
   const { isSuperAdmin } = useAuth();
   const [isEditOpen, setIsEditOpen] = useState(false);
@@ -87,11 +90,13 @@ const AdminProductDetail = () => {
     setSuccess('');
 
     try {
-      await productService.updateStock(id, newStock);
-      // Update the local product state with new quantity
-      setProduct(prev => ({ ...prev, product_quantity: newStock }));
+      await adminService.updateStock(id, newStock);
+      // Optionally show a success message before navigating
       setSuccess('Stock updated successfully!');
-      setTimeout(() => setSuccess(''), 3000);
+      setTimeout(() => {
+        setSuccess('');
+        navigate('/admin/inventory'); // Go back to inventory to trigger refresh
+      }, 1000);
     } catch (err) {
       setError(err.response?.data?.detail || err.response?.data?.message || 'Failed to update stock');
     } finally {
@@ -232,27 +237,57 @@ const AdminProductDetail = () => {
             </div>
           </form>
           {isSuperAdmin && (
-            <div style={{ marginTop: '12px', display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+            <div style={{ marginTop: '12px', position: 'relative', display: 'inline-block' }}>
               <button
                 className="btn btn-primary"
-                onClick={() => setIsPriceModalOpen(true)}
+                onClick={() => setIsEditMenuOpen((prev) => !prev)}
                 style={{ padding: '8px 12px' }}
               >
-                Edit Price
+                Edit
               </button>
-              <button
-                className="btn"
-                onClick={() => setIsDiscountModalOpen(true)}
-                style={{ padding: '8px 12px', background: '#a1127c', color: 'white' }}
-              >
-                Edit Discount
-              </button>
-              <button
-                className="btn btn-secondary"
-                onClick={() => setIsEditOpen((s) => !s)}
-              >
-                {isEditOpen ? 'Cancel Edit' : 'Edit Product'}
-              </button>
+              {isEditMenuOpen && (
+                <div 
+                  style={{
+                    position: 'absolute',
+                    top: '100%',
+                    left: 0,
+                    backgroundColor: 'white',
+                    border: '1px solid #ccc',
+                    borderRadius: '4px',
+                    zIndex: 10,
+                    minWidth: '160px',
+                    boxShadow: '0 2px 8px rgba(0,0,0,0.15)'
+                  }}
+                >
+                  <button
+                    onClick={() => {
+                      setIsPriceModalOpen(true);
+                      setIsEditMenuOpen(false);
+                    }}
+                    style={{ display: 'block', width: '100%', padding: '8px 12px', textAlign: 'left', border: 'none', background: 'none', cursor: 'pointer' }}
+                  >
+                    Edit Price
+                  </button>
+                  <button
+                    onClick={() => {
+                      setIsDiscountModalOpen(true);
+                      setIsEditMenuOpen(false);
+                    }}
+                    style={{ display: 'block', width: '100%', padding: '8px 12px', textAlign: 'left', border: 'none', background: 'none', cursor: 'pointer' }}
+                  >
+                    Edit Discount
+                  </button>
+                  <button
+                    onClick={() => {
+                      setIsEditOpen((s) => !s);
+                      setIsEditMenuOpen(false);
+                    }}
+                    style={{ display: 'block', width: '100%', padding: '8px 12px', textAlign: 'left', border: 'none', background: 'none', cursor: 'pointer' }}
+                  >
+                    {isEditOpen ? 'Cancel Edit' : 'Edit Product'}
+                  </button>
+                </div>
+              )}
             </div>
           )}
         </div>
@@ -327,189 +362,18 @@ const AdminProductDetail = () => {
       )}
 
 {isEditOpen && (
-  <div className="edit-product-form" style={{ marginTop: '40px', maxWidth: '640px' }}>
-    <h2 style={{ fontSize: '24px', fontWeight: '700', marginBottom: '24px', color: '#333' }}>
-      Edit Product
-    </h2>
-    
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
-      
-      {/* Form Group: Name */}
-      <div style={{ display: 'flex', flexDirection: 'column' }}>
-        <label style={{ fontSize: '14px', fontWeight: '600', color: '#666', marginBottom: '6px' }}>
-          Product Name
-        </label>
-        <input 
-          value={editName} 
-          onChange={(e) => setEditName(e.target.value)} 
-          style={{
-            padding: '10px 12px',
-            border: '1px solid #ccc',
-            borderRadius: '4px',
-            fontSize: '16px',
-            outline: 'none'
+        <EditProductModal
+          product={product}
+          open={isEditOpen}
+          onClose={() => setIsEditOpen(false)}
+          onSaved={(updatedProduct) => {
+            setProduct(updatedProduct);
+            setSuccess('Product details updated successfully!');
+            setIsEditOpen(false);
+            setTimeout(() => setSuccess(''), 3000);
           }}
         />
-      </div>
-
-      {/* Form Group: Description */}
-      <div style={{ display: 'flex', flexDirection: 'column' }}>
-        <label style={{ fontSize: '14px', fontWeight: '600', color: '#666', marginBottom: '6px' }}>
-          Description
-        </label>
-        <textarea 
-          value={editDescription} 
-          onChange={(e) => setEditDescription(e.target.value)} 
-          rows={4} 
-          style={{
-            padding: '10px 12px',
-            border: '1px solid #ccc',
-            borderRadius: '4px',
-            fontSize: '16px',
-            fontFamily: 'inherit',
-            resize: 'vertical',
-            outline: 'none'
-          }}
-        />
-      </div>
-
-      {/* Row for Category & Subcategory */}
-      <div style={{ display: 'flex', gap: '16px' }}>
-        <div style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
-          <label style={{ fontSize: '14px', fontWeight: '600', color: '#666', marginBottom: '6px' }}>
-            Category
-          </label>
-          <select 
-            value={editCategory} 
-            onChange={(e) => setEditCategory(e.target.value)}
-            style={{ padding: '10px', border: '1px solid #ccc', borderRadius: '4px', fontSize: '16px' }}
-          >
-            <option value="">-- Select category --</option>
-            {categories.map((c) => (
-              <option key={c} value={c}>{c}</option>
-            ))}
-          </select>
-        </div>
-
-        {subcategories.length > 0 && (
-          <div style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
-            <label style={{ fontSize: '14px', fontWeight: '600', color: '#666', marginBottom: '6px' }}>
-              Subcategory
-            </label>
-            <select 
-              value={editSubcategory} 
-              onChange={(e) => setEditSubcategory(e.target.value)}
-              style={{ padding: '10px', border: '1px solid #ccc', borderRadius: '4px', fontSize: '16px' }}
-            >
-              <option value="">-- Select subcategory --</option>
-              {subcategories.map((s) => (
-                <option key={s} value={s}>{s}</option>
-              ))}
-            </select>
-          </div>
-        )}
-      </div>
-
-      {/* Form Group: Image */}
-<div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-        <label style={{ fontSize: '14px', fontWeight: '600', color: '#666' }}>
-          Update Image
-        </label>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-          {/* Custom Styled Button */}
-          <label 
-            htmlFor="product-image-upload" 
-            style={{
-              display: 'inline-block',
-              padding: '8px 20px',
-              backgroundColor: '#f1f3f5',
-              color: '#495057',
-              border: '1px solid #ced4da',
-              borderRadius: '20px',
-              cursor: 'pointer',
-              fontSize: '14px',
-              fontWeight: '600',
-              transition: 'all 0.2s ease'
-            }}
-            onMouseOver={(e) => e.target.style.backgroundColor = '#e9ecef'}
-            onMouseOut={(e) => e.target.style.backgroundColor = '#f1f3f5'}
-          >
-            Choose File
-          </label>
-          
-          {/* File Name Display */}
-          <span style={{ fontSize: '14px', color: '#777', fontStyle: 'italic' }}>
-            {editImageFile ? editImageFile.name : 'No file chosen'}
-          </span>
-
-          {/* Hidden Actual Input */}
-          <input 
-            id="product-image-upload"
-            type="file" 
-            accept="image/*" 
-            onChange={(e) => setEditImageFile(e.target.files[0])} 
-            style={{ display: 'none' }} 
-          />
-        </div>
-      </div>
-
-
-      {/* Action Buttons */}
-      <div style={{ display: 'flex', gap: '12px', marginTop: '8px' }}>
-        <button
-          style={{
-            backgroundColor: '#C11B6C', // Brand Magenta
-            color: 'white',
-            padding: '12px 24px',
-            border: 'none',
-            borderRadius: '25px', // Match the rounded style of your stock button
-            fontWeight: '600',
-            cursor: 'pointer',
-            fontSize: '15px'
-          }}
-          onClick={async () => {
-            setError('');
-            setSuccess('');
-            try {
-              const payload = {
-                product_name: editName,
-                product_description: editDescription,
-                product_category: editCategory,
-                product_subcategory: editSubcategory,
-                imageFile: editImageFile,
-              };
-              await adminService.updateProduct(id, payload);
-              const updated = await productService.getProduct(id);
-              setProduct(updated);
-              setSuccess('Product updated successfully');
-              setIsEditOpen(false);
-              setTimeout(() => setSuccess(''), 3000);
-            } catch (err) {
-              setError(err.response?.data?.detail || 'Failed to update product');
-            }
-          }}
-        >
-          Save Changes
-        </button>
-        <button 
-          style={{
-            backgroundColor: '#f4f4f4',
-            color: '#555',
-            padding: '12px 24px',
-            border: '1px solid #ddd',
-            borderRadius: '25px',
-            fontWeight: '600',
-            cursor: 'pointer',
-            fontSize: '15px'
-          }}
-          onClick={() => setIsEditOpen(false)}
-        >
-          Cancel
-        </button>
-      </div>
-    </div>
-  </div>
-)}
+      )}
     </main>
   );
 };

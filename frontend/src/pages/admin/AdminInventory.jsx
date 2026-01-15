@@ -176,7 +176,7 @@ const AdminInventory = () => {
                 />
                 <label htmlFor="cat-all" style={{ fontSize: '14px', color: '#444', cursor: 'pointer' }}>All Categories</label>
               </li>
-            {categories.map((cat, index) => (
+            {categories.filter(cat => cat !== 'Beverages').map((cat, index) => (
               <li key={cat} style={{ marginBottom: '12px' }}>
                 <div style={{ display: 'flex', alignItems: 'center' }}>
                   <input

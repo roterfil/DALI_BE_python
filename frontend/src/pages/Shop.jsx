@@ -9,7 +9,6 @@ const categoryImages = {
   "Canned Goods": "images/canned-goods.png",
   "Snacks": "images/snacks.png",
   "Frozen Goods": "images/frozen-image.png",
-  "Beverages": "images/beverages.png",
   "Cooking Essentials": "images/cooking.png",
   "Chiller": "images/chiller.jpg",
   "default": "images/default-image.png"
@@ -126,7 +125,7 @@ const Shop = () => {
       gap: '25px',
       paddingBottom: '40px'
     }}>
-      {categories.map((cat) => (
+      {categories.filter(cat => cat !== 'Beverages').map((cat) => (
         <div key={cat} style={{ 
           backgroundColor: '#fff', 
           borderRadius: '25px', 
@@ -217,7 +216,7 @@ const Shop = () => {
               </label>
             </li>
 
-            {categories.map((cat, index) => (
+            {categories.filter(cat => cat !== 'Beverages').map((cat, index) => (
               <li key={cat} style={{ marginBottom: '12px' }}>
                 <div style={{ display: 'flex', alignItems: 'center' }}>
                   <input
