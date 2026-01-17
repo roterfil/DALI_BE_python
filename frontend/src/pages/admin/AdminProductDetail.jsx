@@ -7,6 +7,7 @@ import { useAuth } from '../../context/AuthContext';
 import EditPriceModal from '../../components/EditPriceModal';
 import EditDiscountModal from '../../components/EditDiscountModal';
 import EditProductModal from '../../components/EditProductModal';
+import ReviewList from '../../components/ReviewList';
 
 const AdminProductDetail = () => {
   const { id } = useParams();
@@ -327,6 +328,11 @@ const AdminProductDetail = () => {
             <strong>Description:</strong>{' '}
             {product.product_description || 'No description available.'}
           </p>
+        </div>
+
+        {/* Customer Reviews Section */}
+        <div style={{ marginTop: '40px' }}>
+          <ReviewList productId={product.product_id} />
         </div>
       </div>
       {isPriceModalOpen && (
