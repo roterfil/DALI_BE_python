@@ -107,7 +107,7 @@ CREATE TABLE orders (
                         account_id              INTEGER NOT NULL REFERENCES accounts(account_id) ON DELETE CASCADE,
                         address_id              INTEGER NOT NULL REFERENCES addresses(address_id),
                         payment_status          VARCHAR(255) NOT NULL CHECK (payment_status IN ('PENDING', 'PAID', 'CANCELLED', 'REFUNDED')),
-                        shipping_status         VARCHAR(255) NOT NULL CHECK (shipping_status IN ('PROCESSING', 'PREPARING_FOR_SHIPMENT', 'IN_TRANSIT', 'DELIVERED', 'COLLECTED', 'CANCELLED', 'DELIVERY_FAILED')),
+                        shipping_status         VARCHAR(255) NOT NULL CHECK (shipping_status IN ('PROCESSING', 'PREPARING_FOR_SHIPMENT', 'IN_TRANSIT', 'DELIVERED', 'READY_FOR_PICKUP', 'COLLECTED', 'CANCELLED', 'DELIVERY_FAILED')),
                         payment_transaction_id  VARCHAR(255),
                         delivery_method         VARCHAR(255) NOT NULL,
                         payment_method          VARCHAR(255) NOT NULL,

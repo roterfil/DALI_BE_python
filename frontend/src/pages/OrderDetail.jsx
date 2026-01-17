@@ -72,6 +72,20 @@ const OrderDetail = () => {
     }
   };
 
+  const handleMarkCollected = async () => {
+    if (!confirm('Confirm that you have collected your order?')) return;
+
+    try {
+      await orderService.markCollected(id);
+      setSuccessMessage('Order marked as collected successfully.');
+      // Reload order to get updated status
+      const data = await orderService.getOrder(id);
+      setOrder(data);
+    } catch (err) {
+      setError(err.response?.data?.message || 'Failed to mark order as collected');
+    }
+  };
+
   const formatDate = (dateString) => {
     const date = new Date(dateString);
     return date.toLocaleDateString('en-PH', {
@@ -366,6 +380,17 @@ const OrderDetail = () => {
                 Cancel Order
               </button>
               <p>You can only cancel your order while it is still being processed.</p>
+            </div>
+          )}
+
+          {/* Mark as Collected Button for Pickup Orders */}
+          {order.shipping_status === 'READY_FOR_PICKUP' && order.delivery_method === 'Pickup Delivery' && (
+            <div className="order-actions-section">
+              <h3>Collection</h3>
+              <button onClick={handleMarkCollected} className="btn btn-primary">
+                Mark as Collected
+              </button>
+              <p>Click this button once you have collected your order from the store.</p>
             </div>
           )}
         </div>

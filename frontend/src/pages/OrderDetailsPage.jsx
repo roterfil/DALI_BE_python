@@ -45,6 +45,21 @@ const OrderDetailsPage = () => {
     }
   };
 
+  const handleMarkCollected = async () => {
+    if (!window.confirm('Confirm that you have collected this order from the store?')) return;
+    
+    setCancelling(true);
+    try {
+      await ordersAPI.markCollected(orderId);
+      alert('Order marked as collected successfully!');
+      fetchOrder();
+    } catch (error) {
+      alert(error.response?.data?.detail || 'Failed to mark order as collected');
+    } finally {
+      setCancelling(false);
+    }
+  };
+
   const getStatusColor = (status) => {
     switch (status) {
       case 'DELIVERED':
@@ -54,6 +69,7 @@ const OrderDetailsPage = () => {
       case 'DELIVERY_FAILED':
         return 'error';
       case 'IN_TRANSIT':
+      case 'READY_FOR_PICKUP':
         return 'info';
       default:
         return 'warning';
@@ -266,6 +282,23 @@ const OrderDetailsPage = () => {
                 disabled={cancelling}
               >
                 {cancelling ? 'Cancelling...' : 'Cancel Order'}
+              </button>
+            )}
+            
+            {/* Collected Button for Pickup Orders */}
+            {console.log('Order check:', { 
+              status: order.shipping_status, 
+              deliveryMethod: order.delivery_method,
+              showButton: order.shipping_status === 'READY_FOR_PICKUP' && order.delivery_method === 'Pickup Delivery'
+            })}
+            {order.shipping_status === 'READY_FOR_PICKUP' && order.delivery_method === 'Pickup Delivery' && (
+              <button 
+                className="btn btn-primary btn-full"
+                onClick={handleMarkCollected}
+                disabled={cancelling}
+                style={{ marginTop: '10px' }}
+              >
+                {cancelling ? 'Processing...' : 'Mark as Collected'}
               </button>
             )}
           </div>

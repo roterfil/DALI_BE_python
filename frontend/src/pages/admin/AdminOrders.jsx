@@ -65,6 +65,7 @@ const AdminOrders = () => {
       IN_TRANSIT: 'shipped',
       SHIPPED: 'shipped',
       DELIVERED: 'delivered',
+      READY_FOR_PICKUP: 'shipped',
       COLLECTED: 'collected',
       CANCELLED: 'cancelled',
       DELIVERY_FAILED: 'cancelled',
@@ -76,7 +77,7 @@ const AdminOrders = () => {
     if (!statusFilter) return true;
     const s = order.shipping_status;
     if (statusFilter === 'active') {
-      return ['PROCESSING', 'PREPARING_FOR_SHIPMENT', 'IN_TRANSIT'].includes(s);
+      return ['PROCESSING', 'PREPARING_FOR_SHIPMENT', 'IN_TRANSIT', 'READY_FOR_PICKUP'].includes(s);
     }
     if (statusFilter === 'completed') {
       return ['DELIVERED', 'COLLECTED'].includes(s);

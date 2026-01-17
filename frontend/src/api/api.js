@@ -53,6 +53,7 @@ export const ordersAPI = {
   getOrders: () => api.get('/orders'),
   getOrder: (id) => api.get(`/orders/${id}`),
   cancelOrder: (id) => api.post(`/orders/${id}/cancel`),
+  markCollected: (id) => api.post(`/orders/${id}/mark-collected`),
 };
 
 // Addresses API

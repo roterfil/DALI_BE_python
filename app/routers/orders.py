@@ -60,3 +60,46 @@ async def cancel_order(
         return {"message": "Order cancelled successfully"}
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
+
+
+@router.post("/{order_id}/mark-collected")
+async def mark_order_collected(
+    order_id: int,
+    db: Session = Depends(get_db),
+    current_user = Depends(get_current_user_required)
+):
+    """Mark a pickup order as collected by the customer."""
+    from app.models import OrderHistory, ShippingStatus
+    from app.core.timezone import get_philippine_time
+    
+    order = OrderService.get_order_by_id(db, order_id)
+    
+    if not order:
+        raise HTTPException(status_code=404, detail="Order not found")
+    
+    # Security check - user can only collect their own orders
+    if order.account_id != current_user.account_id:
+        raise HTTPException(status_code=403, detail="Access denied")
+    
+    # Check if order is pickup delivery
+    if order.delivery_method != "Pickup Delivery":
+        raise HTTPException(status_code=400, detail="This is not a pickup order")
+    
+    # Check if order is ready for pickup
+    if order.shipping_status != ShippingStatus.READY_FOR_PICKUP:
+        raise HTTPException(status_code=400, detail="Order is not ready for pickup yet")
+    
+    # Mark as collected
+    order.shipping_status = ShippingStatus.COLLECTED
+    order.updated_at = get_philippine_time()
+    
+    # Create order history record
+    history = OrderHistory(
+        order_id=order_id,
+        status=ShippingStatus.COLLECTED,
+        notes="Order collected by customer"
+    )
+    db.add(history)
+    db.commit()
+    
+    return {"message": "Order marked as collected successfully"}

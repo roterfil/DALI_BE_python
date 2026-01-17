@@ -72,6 +72,7 @@ const AdminOrderDetail = () => {
       PREPARING_FOR_SHIPMENT: 'processing',
       IN_TRANSIT: 'shipped',
       DELIVERED: 'delivered',
+      READY_FOR_PICKUP: 'shipped',
       COLLECTED: 'collected',
       CANCELLED: 'cancelled',
       DELIVERY_FAILED: 'cancelled',
@@ -220,7 +221,8 @@ const AdminOrderDetail = () => {
 
             {/* Status Update Form */}
             {order.shipping_status !== 'CANCELLED' &&
-              order.shipping_status !== 'DELIVERED' && (
+              order.shipping_status !== 'DELIVERED' &&
+              order.shipping_status !== 'COLLECTED' && (
                 <form
                   onSubmit={handleStatusUpdate}
                   className="status-update-form"
@@ -232,12 +234,13 @@ const AdminOrderDetail = () => {
                     className="form-control"
                     style={{ maxWidth: '200px' }}
                   >
-                    <option value="PROCESSING">Processing</option>
-                    <option value="PREPARING_FOR_SHIPMENT">Preparing for Shipment</option>
-                    <option value="IN_TRANSIT">In Transit</option>
-                    <option value="DELIVERED">Delivered</option>
-                    <option value="COLLECTED">Collected (Pickup)</option>
-                    <option value="DELIVERY_FAILED">Delivery Failed</option>
+                    <option value="PROCESSING" disabled={!['PROCESSING'].includes(order.shipping_status)}>Processing</option>
+                    <option value="PREPARING_FOR_SHIPMENT" disabled={!['PROCESSING', 'PREPARING_FOR_SHIPMENT'].includes(order.shipping_status)}>Preparing for Shipment</option>
+                    <option value="IN_TRANSIT" disabled={order.delivery_method === 'Pickup Delivery' || !['PREPARING_FOR_SHIPMENT', 'IN_TRANSIT'].includes(order.shipping_status)}>In Transit</option>
+                    <option value="DELIVERED" disabled={order.delivery_method === 'Pickup Delivery' || !['IN_TRANSIT', 'DELIVERED'].includes(order.shipping_status)}>Delivered</option>
+                    <option value="READY_FOR_PICKUP" disabled={order.delivery_method !== 'Pickup Delivery' || !['PROCESSING', 'PREPARING_FOR_SHIPMENT', 'READY_FOR_PICKUP'].includes(order.shipping_status)}>Ready for Pickup</option>
+                    <option value="COLLECTED" disabled={order.delivery_method !== 'Pickup Delivery' || !['READY_FOR_PICKUP', 'COLLECTED'].includes(order.shipping_status)}>Collected (Pickup)</option>
+                    <option value="DELIVERY_FAILED" disabled={!['IN_TRANSIT', 'DELIVERED', 'DELIVERY_FAILED'].includes(order.shipping_status)}>Delivery Failed</option>
                     <option value="CANCELLED">Cancelled</option>
                   </select>
                   <input
