@@ -1,7 +1,7 @@
 """
 Pydantic schemas for request/response validation and serialization.
 """
-from pydantic import BaseModel, EmailStr, validator, Field
+from pydantic import BaseModel, EmailStr, validator, Field, computed_field
 from typing import Optional, List
 from datetime import datetime
 from decimal import Decimal
@@ -219,8 +219,9 @@ class OrderItemResponse(OrderItemBase):
     product: ProductResponse
     unit_price: Optional[Decimal] = None  # Price at time of purchase (may be discounted)
     
+    @computed_field
     @property
-    def subtotal(self):
+    def subtotal(self) -> float:
         # Use unit_price if available, otherwise fall back to product price
         price = float(self.unit_price) if self.unit_price is not None else float(self.product.product_price)
         return price * self.quantity
@@ -275,20 +276,23 @@ class OrderResponse(BaseModel):
     order_history: List[OrderHistoryResponse] = []
     order_pickup: Optional[OrderPickupResponse] = None
     
+    @computed_field
     @property
-    def subtotal(self):
+    def subtotal(self) -> float:
         return sum(item.subtotal for item in self.order_items)
     
+    @computed_field
     @property
-    def shipping_fee(self):
+    def shipping_fee(self) -> float:
         # Shipping fee = total_price - subtotal + voucher_discount
         # Because: total_price = subtotal + shipping - voucher
         # So: shipping = total_price - subtotal + voucher
         voucher = float(self.voucher_discount) if self.voucher_discount else 0.0
         return float(self.total_price) - self.subtotal + voucher
     
+    @computed_field
     @property
-    def total_item_count(self):
+    def total_item_count(self) -> int:
         return sum(item.quantity for item in self.order_items)
     
     class Config:

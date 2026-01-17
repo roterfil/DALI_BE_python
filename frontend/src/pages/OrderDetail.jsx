@@ -163,15 +163,8 @@ const OrderDetail = () => {
     );
   }
 
-  const subtotal =
-    order.order_items?.reduce(
-      (sum, item) => {
-        // Use unit_price (price at purchase) if available, otherwise fall back to product price
-        const price = item.unit_price ?? item.product.product_price;
-        return sum + parseFloat(price) * item.quantity;
-      },
-      0
-    ) || 0;
+  // Use backend-calculated values to ensure consistency
+  const subtotal = parseFloat(order.subtotal || 0);
   const voucherDiscount = parseFloat(order.voucher_discount || 0);
   const shippingFee = parseFloat(order.shipping_fee || 0);
 
