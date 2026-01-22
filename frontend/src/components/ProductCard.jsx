@@ -101,7 +101,7 @@ const ProductCard = ({ product, availableToAdd = null }) => {
                 className="add-to-cart-btn"
                 disabled={loading}
               >
-                {loading ? '...' : 'Add'}
+                {loading ? '...' : '🛒 Add'}
               </button>
             </div>
           ) : (

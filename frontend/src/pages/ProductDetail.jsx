@@ -156,7 +156,7 @@ const ProductDetail = () => {
                   className="btn btn-primary btn-large"
                   disabled={addingToCart}
                 >
-                  {addingToCart ? 'Adding...' : 'Add to Cart'}
+                  {addingToCart ? 'Adding...' : '🛒 Add to Cart'}
                 </button>
               </>
             ) : (

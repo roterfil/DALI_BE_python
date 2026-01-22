@@ -33,7 +33,7 @@ const Header = () => {
         </nav>
 
         <div className="header-actions">
-          <Link to="/cart">Cart ({cartCount})</Link>
+          <Link to="/cart">🛒 Cart ({cartCount})</Link>
 
           {!isAuthenticated ? (
             <Link to="/login">Login</Link>

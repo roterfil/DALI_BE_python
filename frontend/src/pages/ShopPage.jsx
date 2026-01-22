@@ -173,7 +173,7 @@ const ShopPage = () => {
                           className="add-btn"
                           onClick={() => handleAddToCart(product)}
                         >
-                          {addingToCart === product.product_id ? '...' : 'Add to Cart'}
+                          {addingToCart === product.product_id ? '...' : '🛒 Add to Cart'}
                         </button>
                       </div>
                     </div>

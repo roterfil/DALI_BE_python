@@ -36,11 +36,11 @@ const EditDiscountModal = ({ product, open, onClose, onSaved }) => {
   const handleSave = async () => {
     // Validation
     if (isOnSale && !discountPrice) {
-      showToast('Discount price is required when item is on sale', 'error');
+      showToast('Discounted price is required when item is on sale', 'error');
       return;
     }
     if (discountPrice && parseFloat(discountPrice) >= parseFloat(product.product_price)) {
-      showToast('Discount price must be less than regular price', 'error');
+      showToast('Discounted price must be less than regular price', 'error');
       return;
     }
 
@@ -91,7 +91,7 @@ const EditDiscountModal = ({ product, open, onClose, onSaved }) => {
           {/* Discount Price Input */}
           <div className="form-group" style={{ opacity: isOnSale ? 1 : 0.5 }}>
             <label style={{ fontWeight: '600', marginBottom: '8px', display: 'block' }}>
-              Discount Price (₱)
+              Discounted Price (₱)
             </label>
             <input
               type="number"
@@ -134,12 +134,12 @@ const EditDiscountModal = ({ product, open, onClose, onSaved }) => {
           {/* Warning Messages */}
           {isOnSale && !discountPrice && (
             <div style={{ color: '#d91a5b', fontSize: '14px', fontStyle: 'italic' }}>
-              ⚠️ Please enter a discount price
+              ⚠️ Please enter a discounted price
             </div>
           )}
           {discountPrice && parseFloat(discountPrice) >= parseFloat(product?.product_price) && (
             <div style={{ color: '#d91a5b', fontSize: '14px', fontStyle: 'italic' }}>
-              ⚠️ Discount price must be less than regular price
+              ⚠️ Discounted price must be less than regular price
             </div>
           )}
         </div>
