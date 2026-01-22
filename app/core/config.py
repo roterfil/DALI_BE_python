@@ -12,6 +12,8 @@ class Settings(BaseSettings):
     DATABASE_URL: str = "postgresql://postgres:password@localhost:5432/dali_db"
     
     # Security
+    # WARNING: Change these secrets in production! Use strong random values.
+    # Generate with: python -c "import secrets; print(secrets.token_urlsafe(32))"
     SECRET_KEY: str = "your-secret-key-change-this-in-production"
     ALGORITHM: str = "HS256"
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 30

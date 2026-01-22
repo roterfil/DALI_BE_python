@@ -26,9 +26,11 @@ from datetime import datetime, timedelta
 from app.core.database import get_db
 from app.core.security import get_current_admin, verify_password
 from app.core.timezone import get_philippine_time
+from app.core.config import settings
 import json
 import os
 import uuid
+import shutil
 from app.models import (
     Product, Order, AdminAccount, ShippingStatus, 
     Account, AuditLog, Voucher, VoucherUsage, OrderItem, OrderPickup, OrderHistory
@@ -136,6 +138,95 @@ async def admin_login(request: Request, credentials: LoginRequest, db: Session =
         admin_email=admin.account_email,
         is_super_admin=getattr(admin, 'is_super_admin', False)
     )
+
+@router.post("/products")
+async def create_product(
+    product_name: str = Form(...),
+    product_description: Optional[str] = Form(None),
+    product_price: float = Form(...),
+    product_category: str = Form(...),
+    product_subcategory: Optional[str] = Form(None),
+    product_quantity: int = Form(...),
+    image: Optional[UploadFile] = File(None),
+    db: Session = Depends(get_db),
+    admin = Depends(get_current_admin)
+):
+    """Create a new product (Super Admin only)."""
+    if not getattr(admin, 'is_super_admin', False):
+        raise HTTPException(status_code=403, detail="Super admin access required")
+    
+    # Validate price
+    if product_price <= 0:
+        raise HTTPException(status_code=400, detail="Price must be greater than 0")
+    
+    # Validate quantity
+    if product_quantity < 0:
+        raise HTTPException(status_code=400, detail="Quantity cannot be negative")
+    
+    # Handle image upload
+    image_filename = None
+    if image:
+        # Validate file type
+        allowed_types = ["image/jpeg", "image/png", "image/webp", "image/gif"]
+        if image.content_type not in allowed_types:
+            raise HTTPException(
+                status_code=400,
+                detail="Invalid image type. Allowed: JPEG, PNG, WebP, GIF"
+            )
+        
+        # Generate unique filename
+        ext = image.filename.split(".")[-1] if "." in image.filename else "jpg"
+        image_filename = f"{uuid.uuid4()}.{ext}"
+        
+        # Save image to frontend public directory
+        image_dir = os.path.join("frontend", "public", "images", "products")
+        os.makedirs(image_dir, exist_ok=True)
+        image_path = os.path.join(image_dir, image_filename)
+        
+        with open(image_path, "wb") as buffer:
+            shutil.copyfileobj(image.file, buffer)
+    
+    # Create product
+    new_product = Product(
+        product_name=product_name,
+        product_description=product_description,
+        product_price=product_price,
+        product_category=product_category,
+        product_subcategory=product_subcategory,
+        product_quantity=product_quantity,
+        image=image_filename,
+        is_on_sale=False,
+        product_discount_price=None
+    )
+    
+    db.add(new_product)
+    db.commit()
+    db.refresh(new_product)
+    
+    # Audit Log
+    try:
+        audit = AuditLog(
+            actor_email=admin.account_email,
+            action='CREATE',
+            entity_type='product',
+            entity_id=new_product.product_id,
+            details=json.dumps({
+                'product_name': product_name,
+                'product_price': product_price,
+                'product_category': product_category,
+                'product_quantity': product_quantity
+            })
+        )
+        db.add(audit)
+        db.commit()
+    except Exception:
+        db.rollback()
+    
+    return {
+        "message": "Product created successfully",
+        "product_id": new_product.product_id,
+        "product_name": new_product.product_name
+    }
 
 @router.get("/inventory")
 async def get_inventory(
@@ -301,7 +392,11 @@ async def get_product(
 @router.put("/products/{product_id}")
 async def update_product(
     product_id: int,
-    product_data: ProductUpdateRequest,
+    product_name: Optional[str] = Form(None),
+    product_description: Optional[str] = Form(None),
+    product_category: Optional[str] = Form(None),
+    product_subcategory: Optional[str] = Form(None),
+    image: Optional[UploadFile] = File(None),
     db: Session = Depends(get_db),
     admin=Depends(get_current_admin)
 ):
@@ -313,12 +408,60 @@ async def update_product(
     if not product:
         raise HTTPException(status_code=404, detail="Product not found")
 
-    update_data = product_data.dict(exclude_unset=True)
+    update_data = {}
+    
+    # Update text fields if provided
+    if product_name is not None:
+        product.product_name = product_name
+        update_data['product_name'] = product_name
+    if product_description is not None:
+        product.product_description = product_description
+        update_data['product_description'] = product_description
+    if product_category is not None:
+        product.product_category = product_category
+        update_data['product_category'] = product_category
+    if product_subcategory is not None:
+        product.product_subcategory = product_subcategory
+        update_data['product_subcategory'] = product_subcategory
+    
+    # Handle image upload
+    if image and image.filename:
+        # Validate file type
+        allowed_types = ["image/jpeg", "image/png", "image/webp", "image/gif", "image/jpg"]
+        if image.content_type not in allowed_types:
+            raise HTTPException(
+                status_code=400,
+                detail=f"Invalid image type '{image.content_type}'. Allowed: JPEG, PNG, WebP, GIF"
+            )
+        
+        # Delete old image if it exists
+        if product.image:
+            old_image_path = os.path.join("frontend", "public", "images", "products", product.image)
+            if os.path.exists(old_image_path):
+                try:
+                    os.remove(old_image_path)
+                except Exception as e:
+                    print(f"Warning: Could not delete old product image: {e}")
+        
+        # Generate unique filename
+        ext = image.filename.split(".")[-1] if "." in image.filename else "jpg"
+        image_filename = f"{uuid.uuid4()}.{ext}"
+        
+        # Save new image to frontend public directory
+        image_dir = os.path.join("frontend", "public", "images", "products")
+        os.makedirs(image_dir, exist_ok=True)
+        image_path = os.path.join(image_dir, image_filename)
+        
+        with open(image_path, "wb") as buffer:
+            shutil.copyfileobj(image.file, buffer)
+        
+        # Update product and track in update_data
+        product.image = image_filename
+        update_data['image'] = image_filename
+    
+    # At least one field must be provided
     if not update_data:
         raise HTTPException(status_code=400, detail="No update data provided")
-
-    for key, value in update_data.items():
-        setattr(product, key, value)
 
     db.commit()
     db.refresh(product)
@@ -343,6 +486,69 @@ async def update_product(
         "updated_fields": list(update_data.keys())
     }
 
+
+@router.delete("/products/{product_id}")
+async def delete_product(
+    product_id: int,
+    db: Session = Depends(get_db),
+    admin = Depends(get_current_admin)
+):
+    """Delete a product (Super Admin only)."""
+    if not getattr(admin, 'is_super_admin', False):
+        raise HTTPException(status_code=403, detail="Super admin access required")
+    
+    # Check if product exists
+    product = db.query(Product).filter(Product.product_id == product_id).first()
+    if not product:
+        raise HTTPException(status_code=404, detail="Product not found")
+    
+    # Check if product has ever been ordered (preserve order history)
+    order_items = db.query(OrderItem).filter(OrderItem.product_id == product_id).first()
+    if order_items:
+        raise HTTPException(
+            status_code=400,
+            detail="Cannot delete product. It has been used in orders. Products with order history cannot be deleted to preserve records."
+        )
+    
+    # Store product info for audit log before deletion
+    product_name = product.product_name
+    product_image = product.image
+    
+    # Delete product image file if it exists
+    if product_image:
+        image_path = os.path.join("frontend", "public", "images", "products", product_image)
+        if os.path.exists(image_path):
+            try:
+                os.remove(image_path)
+            except Exception as e:
+                # Log but don't fail if image deletion fails
+                print(f"Warning: Could not delete product image: {e}")
+    
+    # Delete product from database
+    db.delete(product)
+    db.commit()
+    
+    # Audit Log
+    try:
+        audit = AuditLog(
+            actor_email=admin.account_email,
+            action='DELETE',
+            entity_type='product',
+            entity_id=product_id,
+            details=json.dumps({
+                'product_name': product_name,
+                'product_image': product_image
+            })
+        )
+        db.add(audit)
+        db.commit()
+    except Exception:
+        db.rollback()
+    
+    return {
+        "message": "Product deleted successfully",
+        "product_id": product_id
+    }
 
 
 @router.get("/stats")
@@ -649,19 +855,21 @@ async def update_order_status(
     
     notes = status_data.get("notes", "")
     
+    # Convert string status to ShippingStatus enum
+    try:
+        status_enum = ShippingStatus(new_status)
+    except ValueError:
+        raise HTTPException(status_code=400, detail=f"Invalid status: {new_status}")
+    
     # Get old status before update
     old_status = order.shipping_status
     
-    order.shipping_status = new_status
-    order.updated_at = get_philippine_time()
-    
-    # Create order history record
-    history = OrderHistory(
-        order_id=order_id,
-        status=new_status,
-        notes=notes if notes else f"Status updated to {new_status}"
-    )
-    db.add(history)
+    # Use OrderService to properly handle status updates (including inventory restoration)
+    from app.services.order_service import OrderService
+    try:
+        OrderService.update_shipping_status(db, order_id, status_enum, notes)
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
     
     # Log the status change in audit log with structured details
     log = AuditLog(

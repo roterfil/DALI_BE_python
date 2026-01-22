@@ -6,7 +6,7 @@ from sqlalchemy.orm import Session
 from typing import List
 from app.core.database import get_db
 from app.core.security import get_current_user_required
-from app.models import Address
+from app.models import Address, Order
 from app.schemas import AddressCreate, AddressUpdate, AddressResponse
 
 router = APIRouter(prefix="/api/addresses", tags=["addresses"])
@@ -163,6 +163,17 @@ async def delete_address(
     
     if not address:
         raise HTTPException(status_code=404, detail="Address not found")
+    
+    # Check if address is being used by any orders
+    orders_using_address = db.query(Order).filter(
+        Order.address_id == address_id
+    ).count()
+    
+    if orders_using_address > 0:
+        raise HTTPException(
+            status_code=400, 
+            detail=f"Cannot delete address. It is being used by {orders_using_address} order(s). Addresses used in orders cannot be deleted."
+        )
     
     db.delete(address)
     db.commit()

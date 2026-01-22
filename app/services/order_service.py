@@ -176,7 +176,6 @@ class OrderService:
                 db.add(order_pickup)
         
         # Create order history
-        # Create order history
         history = OrderHistory(
             order_id=order.order_id,
             status="PROCESSING",

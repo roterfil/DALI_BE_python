@@ -2,8 +2,6 @@
 Home router - handles home page.
 """
 from fastapi import APIRouter
-from sqlalchemy.orm import Session
-from app.core.database import get_db
 
 router = APIRouter(tags=["home"])
 

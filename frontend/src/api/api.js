@@ -88,7 +88,9 @@ export const adminAPI = {
   updatePrice: (id, price) => api.put(`/admin/products/${id}/price`, { price }),
   updateStock: (id, quantity) => api.put(`/admin/products/${id}/stock`, { quantity }),
   updateDiscount: (id, data) => api.put(`/admin/products/${id}/discount`, data),
-  updateProduct: (id, data) => api.put(`/admin/products/${id}`, data),
+  updateProduct: (id, data) => api.put(`/admin/products/${id}`, data, {
+    headers: { 'Content-Type': 'multipart/form-data' },
+  }),
   getOrders: (search) => api.get('/admin/orders', { params: { search } }),
   getOrder: (id) => api.get(`/admin/orders/${id}`),
   updateOrderStatus: (id, status) => api.put(`/admin/orders/${id}/status`, { status }),

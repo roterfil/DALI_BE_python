@@ -162,7 +162,7 @@ const Profile = () => {
       setTimeout(() => setSuccessMessage(''), 3000);
     } catch (error) {
       setErrorMessage(error.response?.data?.detail || 'Failed to delete address');
-      setTimeout(() => setErrorMessage(''), 3000);
+      setTimeout(() => setErrorMessage(''), 5000); // Longer timeout for error messages
     }
   };
 

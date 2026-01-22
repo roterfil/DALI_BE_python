@@ -27,10 +27,6 @@ from app.routers import (
 Base.metadata.create_all(bind=engine)
 
 # Seed super admin account if configured
-from sqlalchemy.orm import Session
-from app.models import Account, AdminAccount
-from app.core.security import get_password_hash
-
 from fastapi import FastAPI
 from sqlalchemy.orm import Session
 from app.core.database import SessionLocal
@@ -88,15 +84,18 @@ app = FastAPI(
 )
 
 # Add CORS middleware
+# NOTE: In production, restrict origins to specific domains only
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=[settings.FRONTEND_URL] if settings.FRONTEND_URL else ["*"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
 # Add session middleware (for session-based cart before login)
+# Session middleware
+# IMPORTANT: Set https_only=True in production with HTTPS enabled
 app.add_middleware(
     SessionMiddleware,
     secret_key=settings.SESSION_SECRET_KEY,
@@ -121,6 +120,8 @@ app.include_router(reviews.router)
 static_images_path = os.path.join(settings.STATIC_FILES_PATH, "images")
 os.makedirs(static_images_path, exist_ok=True)
 app.mount("/static/images", StaticFiles(directory=static_images_path), name="static-images")
+# Also mount at /images for frontend compatibility
+app.mount("/images", StaticFiles(directory=static_images_path), name="images")
 
 
 @app.get("/health")

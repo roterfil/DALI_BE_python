@@ -82,7 +82,7 @@ const AdminInventory = () => {
       if (stockFilter === 'out') {
         productList = productList.filter(p => p.product_quantity === 0);
       } else if (stockFilter === 'low') {
-        productList = productList.filter(p => p.product_quantity > 0 && p.product_quantity < 10);
+        productList = productList.filter(p => p.product_quantity > 0 && p.product_quantity <= 10);
       }
       
       // Apply sale status filter

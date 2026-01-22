@@ -21,6 +21,9 @@ async def list_products(
     """Get all products with optional filtering."""
     query = db.query(Product)
     
+    # Hide out-of-stock products from customers
+    query = query.filter(Product.product_quantity > 0)
+    
     # Apply filters
     if subcategory:
         query = query.filter(
@@ -47,7 +50,8 @@ async def list_sale_products(
     """Get all products currently on sale."""
     products = db.query(Product).filter(
         Product.is_on_sale == True,
-        Product.product_discount_price.isnot(None)
+        Product.product_discount_price.isnot(None),
+        Product.product_quantity > 0  # Hide out-of-stock products
     ).all()
     return products
 
@@ -80,4 +84,6 @@ async def get_product(
     product = db.query(Product).filter(Product.product_id == product_id).first()
     if not product:
         raise HTTPException(status_code=404, detail="Product not found")
+    # Allow viewing out-of-stock products on detail page (for links from order history)
+    # But customers cannot add them to cart if quantity is 0
     return product
